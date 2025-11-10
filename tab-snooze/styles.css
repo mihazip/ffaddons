@@ -1,0 +1,155 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #1a1a2e;
+  color: #eee;
+  width: 320px;
+}
+
+.snooze-container {
+  padding: 16px;
+}
+
+h2 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  color: #fff;
+}
+
+.snooze-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.snooze-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  background: #16213e;
+  border: 2px solid #0f3460;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 70px;
+  color: #eee;
+}
+
+.snooze-btn:hover {
+  background: #0f3460;
+  border-color: #53a8b6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.snooze-btn:active {
+  transform: translateY(0);
+}
+
+.snooze-btn .icon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.snooze-btn .label {
+  font-size: 11px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.settings-btn {
+  background: #2a2a3e;
+}
+
+.settings-btn:hover {
+  background: #3a3a4e;
+  border-color: #888;
+}
+
+.view-snoozed-btn {
+  background: #2a2a3e;
+}
+
+.view-snoozed-btn:hover {
+  background: #3a3a4e;
+  border-color: #888;
+}
+
+/* Modal styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #16213e;
+  border: 2px solid #0f3460;
+  border-radius: 12px;
+  padding: 20px;
+  width: 260px;
+}
+
+.modal-content h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: #fff;
+}
+
+#custom-datetime {
+  width: 100%;
+  padding: 8px;
+  border: 2px solid #0f3460;
+  border-radius: 6px;
+  background: #1a1a2e;
+  color: #eee;
+  font-size: 14px;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.modal-buttons button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+#confirm-date-btn {
+  background: #53a8b6;
+  color: #fff;
+}
+
+#confirm-date-btn:hover {
+  background: #4a96a3;
+}
+
+#cancel-date-btn {
+  background: #666;
+  color: #fff;
+}
+
+#cancel-date-btn:hover {
+  background: #777;
+}

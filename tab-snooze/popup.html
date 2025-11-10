@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tab Snooze</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="snooze-container">
+    <h2>Snooze until...</h2>
+    <div class="snooze-grid">
+      <button class="snooze-btn" data-option="later-today">
+        <span class="icon">☀️</span>
+        <span class="label">Later Today</span>
+      </button>
+      <button class="snooze-btn" data-option="tomorrow">
+        <span class="icon">🌅</span>
+        <span class="label">Tomorrow</span>
+      </button>
+      <button class="snooze-btn" data-option="tomorrow-eve">
+        <span class="icon">🌆</span>
+        <span class="label">Tomorrow Eve</span>
+      </button>
+      <button class="snooze-btn" data-option="this-eve">
+        <span class="icon">🌃</span>
+        <span class="label">This Evening</span>
+      </button>
+      <button class="snooze-btn" data-option="next-weekend">
+        <span class="icon">🎉</span>
+        <span class="label">Next Weekend</span>
+      </button>
+      <button class="snooze-btn" data-option="next-week">
+        <span class="icon">📅</span>
+        <span class="label">Next Week</span>
+      </button>
+      <button class="snooze-btn" data-option="in-a-month">
+        <span class="icon">📆</span>
+        <span class="label">In a Month</span>
+      </button>
+      <button class="snooze-btn" data-option="someday">
+        <span class="icon">🔮</span>
+        <span class="label">Someday</span>
+      </button>
+      <button class="snooze-btn" data-option="pick-date">
+        <span class="icon">🗓️</span>
+        <span class="label">Pick a Date</span>
+      </button>
+      <button class="snooze-btn" data-option="repeatedly">
+        <span class="icon">🔄</span>
+        <span class="label">Repeatedly</span>
+      </button>
+      <button class="snooze-btn settings-btn" id="settings-btn">
+        <span class="icon">⚙️</span>
+        <span class="label">Settings</span>
+      </button>
+      <button class="snooze-btn view-snoozed-btn" id="view-snoozed-btn">
+        <span class="icon">📋</span>
+        <span class="label">View Snoozed</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Date picker modal -->
+  <div id="date-picker-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3>Pick a Date & Time</h3>
+      <input type="datetime-local" id="custom-datetime">
+      <div class="modal-buttons">
+        <button id="confirm-date-btn">Snooze</button>
+        <button id="cancel-date-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

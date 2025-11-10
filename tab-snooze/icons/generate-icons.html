@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Generate Tab Snooze Icons</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    .icon-preview {
+      display: flex;
+      gap: 20px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .icon-item {
+      text-align: center;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin: 10px 0;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 14px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    .instructions {
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Generate Tab Snooze Icons</h1>
+
+  <div class="instructions">
+    <h3>Instructions:</h3>
+    <ol>
+      <li>Click "Generate All Icons" below</li>
+      <li>Click each "Download" button to save the icons</li>
+      <li>Save them in the <code>icons/</code> folder with the correct names</li>
+    </ol>
+  </div>
+
+  <button onclick="generateAllIcons()">Generate All Icons</button>
+
+  <div class="icon-preview" id="icon-container"></div>
+
+  <script>
+    const sizes = [
+      { size: 16, name: 'moon-16.png' },
+      { size: 32, name: 'moon-32.png' },
+      { size: 48, name: 'moon-48.png' },
+      { size: 128, name: 'moon-128.png' }
+    ];
+
+    function drawMoonIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      canvas.width = size;
+      canvas.height = size;
+
+      // Clear canvas
+      ctx.clearRect(0, 0, size, size);
+
+      // Create gradient for moon
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#FFD700');
+      gradient.addColorStop(1, '#FFA500');
+
+      // Draw main moon circle
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2 - 2, 0, 2 * Math.PI);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // Draw shadow (crescent effect)
+      ctx.beginPath();
+      ctx.arc(size * 0.625, size * 0.39, size * 0.43, 0, 2 * Math.PI);
+      ctx.fillStyle = 'rgba(26, 26, 46, 0.7)';
+      ctx.fill();
+
+      // Draw craters
+      const craters = [
+        { x: 0.375, y: 0.31, r: 0.063 },
+        { x: 0.297, y: 0.45, r: 0.039 },
+        { x: 0.352, y: 0.586, r: 0.047 },
+        { x: 0.469, y: 0.664, r: 0.031 }
+      ];
+
+      craters.forEach(crater => {
+        ctx.beginPath();
+        ctx.arc(size * crater.x, size * crater.y, size * crater.r, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(42, 42, 62, 0.4)';
+        ctx.fill();
+      });
+    }
+
+    function generateAllIcons() {
+      const container = document.getElementById('icon-container');
+      container.innerHTML = '';
+
+      sizes.forEach(({ size, name }) => {
+        const iconItem = document.createElement('div');
+        iconItem.className = 'icon-item';
+
+        const canvas = document.createElement('canvas');
+        drawMoonIcon(canvas, size);
+
+        const label = document.createElement('div');
+        label.textContent = `${size}x${size}`;
+
+        const downloadBtn = document.createElement('button');
+        downloadBtn.textContent = `Download ${name}`;
+        downloadBtn.onclick = () => downloadIcon(canvas, name);
+
+        iconItem.appendChild(canvas);
+        iconItem.appendChild(label);
+        iconItem.appendChild(downloadBtn);
+        container.appendChild(iconItem);
+      });
+    }
+
+    function downloadIcon(canvas, filename) {
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    // Auto-generate on load
+    window.onload = generateAllIcons;
+  </script>
+</body>
+</html>
