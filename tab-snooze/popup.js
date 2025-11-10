@@ -2,7 +2,6 @@
 async function getSettings() {
   const defaults = {
     laterTodayHours: 3,
-    dateFormat: 'DD/MM/YYYY',
     timeFormat: '24'
   };
 
@@ -146,24 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const confirmBtn = document.getElementById('confirm-date-btn');
   const cancelBtn = document.getElementById('cancel-date-btn');
 
-  // Format date based on user preference
-  function formatDate(date, format) {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-
-    switch(format) {
-      case 'DD/MM/YYYY':
-        return `${day}/${month}/${year}`;
-      case 'MM/DD/YYYY':
-        return `${month}/${day}/${year}`;
-      case 'YYYY/MM/DD':
-        return `${year}/${month}/${day}`;
-      default:
-        return `${day}/${month}/${year}`;
-    }
-  }
-
   // Format time based on user preference
   function formatTime(date, format) {
     const hours24 = date.getHours();
@@ -177,33 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const hours = String(hours24).padStart(2, '0');
       return `${hours}:${minutes}`;
     }
-  }
-
-  // Parse date based on user preference
-  function parseDate(dateStr, format) {
-    const parts = dateStr.split('/');
-    if (parts.length !== 3) return null;
-
-    let day, month, year;
-    switch(format) {
-      case 'DD/MM/YYYY':
-        [day, month, year] = parts.map(Number);
-        break;
-      case 'MM/DD/YYYY':
-        [month, day, year] = parts.map(Number);
-        break;
-      case 'YYYY/MM/DD':
-        [year, month, day] = parts.map(Number);
-        break;
-      default:
-        [day, month, year] = parts.map(Number);
-    }
-
-    if (!day || !month || !year) return null;
-    if (month < 1 || month > 12) return null;
-    if (day < 1 || day > 31) return null;
-
-    return { day, month, year };
   }
 
   // Parse time based on user preference
@@ -249,8 +203,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateInput = document.getElementById('custom-date');
     const timeInput = document.getElementById('custom-time');
 
-    dateInput.placeholder = settings.dateFormat;
-    dateInput.value = formatDate(defaultDateTime, settings.dateFormat);
+    // Format date as YYYY-MM-DD for date input
+    const year = defaultDateTime.getFullYear();
+    const month = String(defaultDateTime.getMonth() + 1).padStart(2, '0');
+    const day = String(defaultDateTime.getDate()).padStart(2, '0');
+    dateInput.value = `${year}-${month}-${day}`;
+
+    // Set minimum date to today
+    const today = new Date();
+    const minYear = today.getFullYear();
+    const minMonth = String(today.getMonth() + 1).padStart(2, '0');
+    const minDay = String(today.getDate()).padStart(2, '0');
+    dateInput.min = `${minYear}-${minMonth}-${minDay}`;
 
     timeInput.placeholder = settings.timeFormat === '12' ? '2:30 PM' : '14:30';
     timeInput.value = formatTime(defaultDateTime, settings.timeFormat);
@@ -263,13 +227,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateInput = document.getElementById('custom-date');
     const timeInput = document.getElementById('custom-time');
 
-    const parsedDate = parseDate(dateInput.value, settings.dateFormat);
-    const parsedTime = parseTime(timeInput.value, settings.timeFormat);
-
-    if (!parsedDate) {
-      alert(`Invalid date format. Please use: ${settings.dateFormat}`);
+    // Parse date from date input (YYYY-MM-DD format)
+    if (!dateInput.value) {
+      alert('Please select a date');
       return;
     }
+
+    const [year, month, day] = dateInput.value.split('-').map(Number);
+    const parsedTime = parseTime(timeInput.value, settings.timeFormat);
 
     if (!parsedTime) {
       const timeExample = settings.timeFormat === '12' ? '2:30 PM' : '14:30';
@@ -279,9 +244,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Create date in local timezone
     const selectedDateTime = new Date(
-      parsedDate.year,
-      parsedDate.month - 1,
-      parsedDate.day,
+      year,
+      month - 1,
+      day,
       parsedTime.hours,
       parsedTime.minutes,
       0,
