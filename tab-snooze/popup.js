@@ -1,7 +1,9 @@
 // Get settings from storage
 async function getSettings() {
   const defaults = {
-    laterTodayHours: 3
+    laterTodayHours: 3,
+    dateFormat: 'DD/MM/YYYY',
+    timeFormat: '24'
   };
 
   const result = await browser.storage.sync.get(defaults);
@@ -144,30 +146,152 @@ document.addEventListener('DOMContentLoaded', () => {
   const confirmBtn = document.getElementById('confirm-date-btn');
   const cancelBtn = document.getElementById('cancel-date-btn');
 
-  function showDatePicker() {
-    // Set minimum datetime to now
+  // Format date based on user preference
+  function formatDate(date, format) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    switch(format) {
+      case 'DD/MM/YYYY':
+        return `${day}/${month}/${year}`;
+      case 'MM/DD/YYYY':
+        return `${month}/${day}/${year}`;
+      case 'YYYY/MM/DD':
+        return `${year}/${month}/${day}`;
+      default:
+        return `${day}/${month}/${year}`;
+    }
+  }
+
+  // Format time based on user preference
+  function formatTime(date, format) {
+    const hours24 = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    if (format === '12') {
+      const hours12 = hours24 % 12 || 12;
+      const period = hours24 < 12 ? 'AM' : 'PM';
+      return `${hours12}:${minutes} ${period}`;
+    } else {
+      const hours = String(hours24).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+  }
+
+  // Parse date based on user preference
+  function parseDate(dateStr, format) {
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+
+    let day, month, year;
+    switch(format) {
+      case 'DD/MM/YYYY':
+        [day, month, year] = parts.map(Number);
+        break;
+      case 'MM/DD/YYYY':
+        [month, day, year] = parts.map(Number);
+        break;
+      case 'YYYY/MM/DD':
+        [year, month, day] = parts.map(Number);
+        break;
+      default:
+        [day, month, year] = parts.map(Number);
+    }
+
+    if (!day || !month || !year) return null;
+    if (month < 1 || month > 12) return null;
+    if (day < 1 || day > 31) return null;
+
+    return { day, month, year };
+  }
+
+  // Parse time based on user preference
+  function parseTime(timeStr, format) {
+    if (format === '12') {
+      // Format: "2:30 PM" or "02:30 PM"
+      const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (!match) return null;
+
+      let hours = parseInt(match[1]);
+      const minutes = parseInt(match[2]);
+      const period = match[3].toUpperCase();
+
+      if (hours < 1 || hours > 12) return null;
+      if (minutes < 0 || minutes > 59) return null;
+
+      if (period === 'PM' && hours !== 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+
+      return { hours, minutes };
+    } else {
+      // Format: "14:30"
+      const parts = timeStr.split(':');
+      if (parts.length !== 2) return null;
+
+      const hours = parseInt(parts[0]);
+      const minutes = parseInt(parts[1]);
+
+      if (hours < 0 || hours > 23) return null;
+      if (minutes < 0 || minutes > 59) return null;
+
+      return { hours, minutes };
+    }
+  }
+
+  async function showDatePicker() {
+    const settings = await getSettings();
     const now = new Date();
-    const minDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-    document.getElementById('custom-datetime').min = minDateTime;
 
     // Set default to 1 hour from now
-    const defaultTime = new Date(now.getTime() + 60 * 60 * 1000 - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-    document.getElementById('custom-datetime').value = defaultTime;
+    const defaultDateTime = new Date(now.getTime() + 60 * 60 * 1000);
+
+    const dateInput = document.getElementById('custom-date');
+    const timeInput = document.getElementById('custom-time');
+
+    dateInput.placeholder = settings.dateFormat;
+    dateInput.value = formatDate(defaultDateTime, settings.dateFormat);
+
+    timeInput.placeholder = settings.timeFormat === '12' ? '2:30 PM' : '14:30';
+    timeInput.value = formatTime(defaultDateTime, settings.timeFormat);
 
     modal.style.display = 'flex';
   }
 
-  confirmBtn.addEventListener('click', () => {
-    const dateTimeInput = document.getElementById('custom-datetime');
+  confirmBtn.addEventListener('click', async () => {
+    const settings = await getSettings();
+    const dateInput = document.getElementById('custom-date');
+    const timeInput = document.getElementById('custom-time');
 
-    // Parse datetime-local value as local time (not UTC)
-    // datetime-local format: "YYYY-MM-DDTHH:MM"
-    const [datePart, timePart] = dateTimeInput.value.split('T');
-    const [year, month, day] = datePart.split('-').map(Number);
-    const [hour, minute] = timePart.split(':').map(Number);
+    const parsedDate = parseDate(dateInput.value, settings.dateFormat);
+    const parsedTime = parseTime(timeInput.value, settings.timeFormat);
+
+    if (!parsedDate) {
+      alert(`Invalid date format. Please use: ${settings.dateFormat}`);
+      return;
+    }
+
+    if (!parsedTime) {
+      const timeExample = settings.timeFormat === '12' ? '2:30 PM' : '14:30';
+      alert(`Invalid time format. Please use: ${timeExample}`);
+      return;
+    }
 
     // Create date in local timezone
-    const selectedDateTime = new Date(year, month - 1, day, hour, minute, 0, 0);
+    const selectedDateTime = new Date(
+      parsedDate.year,
+      parsedDate.month - 1,
+      parsedDate.day,
+      parsedTime.hours,
+      parsedTime.minutes,
+      0,
+      0
+    );
+
+    if (isNaN(selectedDateTime.getTime())) {
+      alert('Invalid date or time');
+      return;
+    }
 
     if (selectedDateTime.getTime() > Date.now()) {
       snoozeTab('custom', selectedDateTime.getTime());
