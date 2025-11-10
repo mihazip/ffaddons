@@ -159,7 +159,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   confirmBtn.addEventListener('click', () => {
     const dateTimeInput = document.getElementById('custom-datetime');
-    const selectedDateTime = new Date(dateTimeInput.value);
+
+    // Parse datetime-local value as local time (not UTC)
+    // datetime-local format: "YYYY-MM-DDTHH:MM"
+    const [datePart, timePart] = dateTimeInput.value.split('T');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute] = timePart.split(':').map(Number);
+
+    // Create date in local timezone
+    const selectedDateTime = new Date(year, month - 1, day, hour, minute, 0, 0);
 
     if (selectedDateTime.getTime() > Date.now()) {
       snoozeTab('custom', selectedDateTime.getTime());
