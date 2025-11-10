@@ -4,6 +4,12 @@
   "version": "1.0.0",
   "description": "Snooze tabs and reopen them later at your chosen time",
 
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tab-snooze@ffaddons.local"
+    }
+  },
+
   "permissions": [
     "tabs",
     "alarms",
