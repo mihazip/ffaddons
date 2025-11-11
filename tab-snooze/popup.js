@@ -109,10 +109,14 @@ async function snoozeTab(option, customTime = null) {
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('Popup DOMContentLoaded');
+
   // Date picker modal elements
   const modal = document.getElementById('date-picker-modal');
   const confirmBtn = document.getElementById('confirm-date-btn');
   const cancelBtn = document.getElementById('cancel-date-btn');
+
+  console.log('Modal elements:', { modal, confirmBtn, cancelBtn });
 
   // Format time based on user preference
   function formatTime(date, format) {
@@ -163,6 +167,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function showDatePicker() {
+    console.log('showDatePicker called');
+    console.log('modal element:', modal);
+
     const settings = await getSettings();
     const now = new Date();
 
@@ -171,6 +178,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const dateInput = document.getElementById('custom-date');
     const timeInput = document.getElementById('custom-time');
+
+    console.log('dateInput:', dateInput);
+    console.log('timeInput:', timeInput);
 
     // Format date as YYYY-MM-DD for date input
     const year = defaultDateTime.getFullYear();
@@ -188,16 +198,21 @@ document.addEventListener('DOMContentLoaded', () => {
     timeInput.placeholder = settings.timeFormat === '12' ? '2:30 PM' : '14:30';
     timeInput.value = formatTime(defaultDateTime, settings.timeFormat);
 
+    console.log('Setting modal.style.display to flex');
     modal.style.display = 'flex';
+    console.log('modal.style.display is now:', modal.style.display);
   }
 
   // Handle snooze button clicks
   const snoozeButtons = document.querySelectorAll('.snooze-btn[data-option]');
+  console.log('Found snooze buttons:', snoozeButtons.length);
   snoozeButtons.forEach(button => {
     button.addEventListener('click', () => {
       const option = button.dataset.option;
+      console.log('Snooze button clicked, option:', option);
 
       if (option === 'pick-date') {
+        console.log('Pick date option selected, calling showDatePicker');
         showDatePicker();
       } else if (option === 'repeatedly') {
         // TODO: Implement repeatedly functionality
