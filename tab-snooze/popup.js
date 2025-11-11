@@ -109,38 +109,7 @@ async function snoozeTab(option, customTime = null) {
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', () => {
-  // Handle snooze button clicks
-  const snoozeButtons = document.querySelectorAll('.snooze-btn[data-option]');
-  snoozeButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const option = button.dataset.option;
-
-      if (option === 'pick-date') {
-        showDatePicker();
-      } else if (option === 'repeatedly') {
-        // TODO: Implement repeatedly functionality
-        alert('Repeatedly feature coming soon!');
-      } else {
-        snoozeTab(option);
-      }
-    });
-  });
-
-  // Handle settings button
-  document.getElementById('settings-btn').addEventListener('click', () => {
-    browser.runtime.openOptionsPage();
-    window.close();
-  });
-
-  // Handle view snoozed button
-  document.getElementById('view-snoozed-btn').addEventListener('click', async () => {
-    // Open a new tab with snoozed tabs list
-    const url = browser.runtime.getURL('snoozed.html');
-    await browser.tabs.create({ url });
-    window.close();
-  });
-
-  // Date picker modal handlers
+  // Date picker modal elements
   const modal = document.getElementById('date-picker-modal');
   const confirmBtn = document.getElementById('confirm-date-btn');
   const cancelBtn = document.getElementById('cancel-date-btn');
@@ -197,8 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const settings = await getSettings();
     const now = new Date();
 
-    // Set default to 1 hour from now
-    const defaultDateTime = new Date(now.getTime() + 60 * 60 * 1000);
+    // Set default to 1 minute from now
+    const defaultDateTime = new Date(now.getTime() + 60 * 1000);
 
     const dateInput = document.getElementById('custom-date');
     const timeInput = document.getElementById('custom-time');
@@ -222,6 +191,38 @@ document.addEventListener('DOMContentLoaded', () => {
     modal.style.display = 'flex';
   }
 
+  // Handle snooze button clicks
+  const snoozeButtons = document.querySelectorAll('.snooze-btn[data-option]');
+  snoozeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const option = button.dataset.option;
+
+      if (option === 'pick-date') {
+        showDatePicker();
+      } else if (option === 'repeatedly') {
+        // TODO: Implement repeatedly functionality
+        alert('Repeatedly feature coming soon!');
+      } else {
+        snoozeTab(option);
+      }
+    });
+  });
+
+  // Handle settings button
+  document.getElementById('settings-btn').addEventListener('click', () => {
+    browser.runtime.openOptionsPage();
+    window.close();
+  });
+
+  // Handle view snoozed button
+  document.getElementById('view-snoozed-btn').addEventListener('click', async () => {
+    // Open a new tab with snoozed tabs list
+    const url = browser.runtime.getURL('snoozed.html');
+    await browser.tabs.create({ url });
+    window.close();
+  });
+
+  // Confirm button handler
   confirmBtn.addEventListener('click', async () => {
     const settings = await getSettings();
     const dateInput = document.getElementById('custom-date');
