@@ -85,11 +85,11 @@ h2 {
 
 /* Modal styles */
 .modal {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   width: 320px;
-  height: 100%;
+  min-height: 100vh;
   background: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
