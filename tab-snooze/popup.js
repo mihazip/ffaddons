@@ -107,9 +107,12 @@ async function snoozeTab(option, customTime = null) {
   }
 }
 
+// Add immediate log to verify script is loading
+console.log('popup.js loaded');
+
 // Initialize popup
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('Popup DOMContentLoaded');
+function initPopup() {
+  console.log('Popup initialization started');
 
   // Date picker modal elements
   const modal = document.getElementById('date-picker-modal');
@@ -117,6 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelBtn = document.getElementById('cancel-date-btn');
 
   console.log('Modal elements:', { modal, confirmBtn, cancelBtn });
+
+  if (!modal || !confirmBtn || !cancelBtn) {
+    console.error('Failed to find modal elements!', { modal, confirmBtn, cancelBtn });
+    return;
+  }
 
   // Format time based on user preference
   function formatTime(date, format) {
@@ -167,58 +175,74 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function showDatePicker() {
-    console.log('showDatePicker called');
-    console.log('modal element:', modal);
+    try {
+      console.log('showDatePicker called');
+      console.log('modal element:', modal);
+      console.log('modal current display:', modal ? modal.style.display : 'modal is null');
 
-    const settings = await getSettings();
-    const now = new Date();
+      const settings = await getSettings();
+      const now = new Date();
 
-    // Set default to 1 minute from now
-    const defaultDateTime = new Date(now.getTime() + 60 * 1000);
+      // Set default to 1 minute from now
+      const defaultDateTime = new Date(now.getTime() + 60 * 1000);
 
-    const dateInput = document.getElementById('custom-date');
-    const timeInput = document.getElementById('custom-time');
+      const dateInput = document.getElementById('custom-date');
+      const timeInput = document.getElementById('custom-time');
 
-    console.log('dateInput:', dateInput);
-    console.log('timeInput:', timeInput);
+      console.log('dateInput:', dateInput);
+      console.log('timeInput:', timeInput);
 
-    // Format date as YYYY-MM-DD for date input
-    const year = defaultDateTime.getFullYear();
-    const month = String(defaultDateTime.getMonth() + 1).padStart(2, '0');
-    const day = String(defaultDateTime.getDate()).padStart(2, '0');
-    dateInput.value = `${year}-${month}-${day}`;
+      if (!dateInput || !timeInput) {
+        console.error('Date or time input not found!');
+        return;
+      }
 
-    // Set minimum date to today
-    const today = new Date();
-    const minYear = today.getFullYear();
-    const minMonth = String(today.getMonth() + 1).padStart(2, '0');
-    const minDay = String(today.getDate()).padStart(2, '0');
-    dateInput.min = `${minYear}-${minMonth}-${minDay}`;
+      // Format date as YYYY-MM-DD for date input
+      const year = defaultDateTime.getFullYear();
+      const month = String(defaultDateTime.getMonth() + 1).padStart(2, '0');
+      const day = String(defaultDateTime.getDate()).padStart(2, '0');
+      dateInput.value = `${year}-${month}-${day}`;
 
-    timeInput.placeholder = settings.timeFormat === '12' ? '2:30 PM' : '14:30';
-    timeInput.value = formatTime(defaultDateTime, settings.timeFormat);
+      // Set minimum date to today
+      const today = new Date();
+      const minYear = today.getFullYear();
+      const minMonth = String(today.getMonth() + 1).padStart(2, '0');
+      const minDay = String(today.getDate()).padStart(2, '0');
+      dateInput.min = `${minYear}-${minMonth}-${minDay}`;
 
-    console.log('Setting modal.style.display to flex');
-    modal.style.display = 'flex';
-    console.log('modal.style.display is now:', modal.style.display);
+      timeInput.placeholder = settings.timeFormat === '12' ? '2:30 PM' : '14:30';
+      timeInput.value = formatTime(defaultDateTime, settings.timeFormat);
+
+      console.log('Setting modal.style.display to flex');
+      modal.style.display = 'flex';
+      console.log('modal.style.display is now:', modal.style.display);
+      console.log('modal.style.cssText:', modal.style.cssText);
+    } catch (error) {
+      console.error('Error in showDatePicker:', error);
+    }
   }
 
   // Handle snooze button clicks
   const snoozeButtons = document.querySelectorAll('.snooze-btn[data-option]');
   console.log('Found snooze buttons:', snoozeButtons.length);
-  snoozeButtons.forEach(button => {
+  snoozeButtons.forEach((button, index) => {
+    console.log(`Button ${index}:`, button.dataset.option);
     button.addEventListener('click', () => {
-      const option = button.dataset.option;
-      console.log('Snooze button clicked, option:', option);
+      try {
+        const option = button.dataset.option;
+        console.log('Snooze button clicked, option:', option);
 
-      if (option === 'pick-date') {
-        console.log('Pick date option selected, calling showDatePicker');
-        showDatePicker();
-      } else if (option === 'repeatedly') {
-        // TODO: Implement repeatedly functionality
-        alert('Repeatedly feature coming soon!');
-      } else {
-        snoozeTab(option);
+        if (option === 'pick-date') {
+          console.log('Pick date option selected, calling showDatePicker');
+          showDatePicker();
+        } else if (option === 'repeatedly') {
+          // TODO: Implement repeatedly functionality
+          alert('Repeatedly feature coming soon!');
+        } else {
+          snoozeTab(option);
+        }
+      } catch (error) {
+        console.error('Error in button click handler:', error);
       }
     });
   });
@@ -292,4 +316,14 @@ document.addEventListener('DOMContentLoaded', () => {
       modal.style.display = 'none';
     }
   });
-});
+
+  console.log('Popup initialization completed');
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPopup);
+} else {
+  // DOM already loaded
+  initPopup();
+}
