@@ -211,6 +211,94 @@ document.addEventListener('DOMContentLoaded', () => {
     return { year, month, day };
   }
 
+  // Calendar state
+  let currentCalendarDate = new Date();
+  let selectedDate = null;
+
+  // Get month name
+  function getMonthName(date) {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'];
+    return months[date.getMonth()];
+  }
+
+  // Get days in month
+  function getDaysInMonth(year, month) {
+    return new Date(year, month + 1, 0).getDate();
+  }
+
+  // Get first day of month (0 = Sunday, 1 = Monday, etc.)
+  function getFirstDayOfMonth(year, month) {
+    const day = new Date(year, month, 1).getDay();
+    // Convert Sunday=0 to Sunday=6 (to make Monday=0)
+    return day === 0 ? 6 : day - 1;
+  }
+
+  // Check if two dates are the same day
+  function isSameDay(date1, date2) {
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate();
+  }
+
+  // Render calendar
+  function renderCalendar() {
+    const calendarDays = document.getElementById('calendar-days');
+    const calendarTitle = document.getElementById('calendar-title');
+
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+
+    // Update title
+    calendarTitle.textContent = `${getMonthName(currentCalendarDate)} ${year}`;
+
+    // Clear calendar
+    calendarDays.innerHTML = '';
+
+    const daysInMonth = getDaysInMonth(year, month);
+    const firstDay = getFirstDayOfMonth(year, month);
+    const today = new Date();
+
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < firstDay; i++) {
+      const emptyDay = document.createElement('div');
+      emptyDay.className = 'calendar-day empty';
+      calendarDays.appendChild(emptyDay);
+    }
+
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayElement = document.createElement('div');
+      dayElement.className = 'calendar-day';
+      dayElement.textContent = day;
+
+      const currentDate = new Date(year, month, day);
+
+      // Mark today
+      if (isSameDay(currentDate, today)) {
+        dayElement.classList.add('today');
+      }
+
+      // Mark selected
+      if (selectedDate && isSameDay(currentDate, selectedDate)) {
+        dayElement.classList.add('selected');
+      }
+
+      // Disable past dates
+      if (currentDate < today && !isSameDay(currentDate, today)) {
+        dayElement.classList.add('disabled');
+      } else {
+        // Add click handler for future dates
+        dayElement.addEventListener('click', () => {
+          selectedDate = new Date(year, month, day);
+          renderCalendar(); // Re-render to show selection
+        });
+      }
+
+      calendarDays.appendChild(dayElement);
+    }
+  }
+
   async function showDatePicker() {
     console.log('showDatePicker called');
     console.log('modal element:', modal);
@@ -221,15 +309,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set default to 1 minute from now
     const defaultDateTime = new Date(now.getTime() + 60 * 1000);
 
-    const dateInput = document.getElementById('custom-date');
+    // Initialize calendar to current month
+    currentCalendarDate = new Date(defaultDateTime);
+    selectedDate = new Date(defaultDateTime);
+
+    // Render the calendar
+    renderCalendar();
+
     const timeInput = document.getElementById('custom-time');
 
-    console.log('dateInput:', dateInput);
     console.log('timeInput:', timeInput);
-
-    // Format date based on user preference
-    dateInput.value = formatDate(defaultDateTime, settings.dateFormat);
-    dateInput.placeholder = settings.dateFormat === 'DD-MM-YYYY' ? 'DD-MM-YYYY' : 'YYYY-MM-DD';
 
     timeInput.placeholder = settings.timeFormat === '12' ? '2:30 PM' : '14:30';
     timeInput.value = formatTime(defaultDateTime, settings.timeFormat);
@@ -273,22 +362,25 @@ document.addEventListener('DOMContentLoaded', () => {
     window.close();
   });
 
+  // Handle calendar navigation
+  document.getElementById('prev-month').addEventListener('click', () => {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+    renderCalendar();
+  });
+
+  document.getElementById('next-month').addEventListener('click', () => {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+    renderCalendar();
+  });
+
   // Confirm button handler
   confirmBtn.addEventListener('click', async () => {
     const settings = await getSettings();
-    const dateInput = document.getElementById('custom-date');
     const timeInput = document.getElementById('custom-time');
 
-    // Parse date based on user's format preference
-    if (!dateInput.value) {
+    // Check if a date is selected
+    if (!selectedDate) {
       alert('Please select a date');
-      return;
-    }
-
-    const parsedDate = parseDate(dateInput.value, settings.dateFormat);
-    if (!parsedDate) {
-      const dateExample = settings.dateFormat === 'DD-MM-YYYY' ? 'DD-MM-YYYY' : 'YYYY-MM-DD';
-      alert(`Invalid date format. Please use: ${dateExample}`);
       return;
     }
 
@@ -299,11 +391,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Create date in local timezone
+    // Create date in local timezone using selected date from calendar
     const selectedDateTime = new Date(
-      parsedDate.year,
-      parsedDate.month - 1,
-      parsedDate.day,
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
       parsedTime.hours,
       parsedTime.minutes,
       0,
