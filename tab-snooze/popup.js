@@ -2,6 +2,7 @@
 async function getSettings() {
   const defaults = {
     laterTodayHours: 3,
+    dateFormat: 'DD-MM-YYYY',
     timeFormat: '24'
   };
 
@@ -166,6 +167,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Format date based on user preference
+  function formatDate(date, format) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    if (format === 'DD-MM-YYYY') {
+      return `${day}-${month}-${year}`;
+    } else {
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  // Parse date based on user preference
+  function parseDate(dateStr, format) {
+    let day, month, year;
+
+    if (format === 'DD-MM-YYYY') {
+      // Format: "31-12-2025"
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return null;
+
+      day = parseInt(parts[0]);
+      month = parseInt(parts[1]);
+      year = parseInt(parts[2]);
+    } else {
+      // Format: "2025-12-31"
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return null;
+
+      year = parseInt(parts[0]);
+      month = parseInt(parts[1]);
+      day = parseInt(parts[2]);
+    }
+
+    // Validate
+    if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+    if (day < 1 || day > 31) return null;
+    if (month < 1 || month > 12) return null;
+    if (year < 2000 || year > 2100) return null;
+
+    return { year, month, day };
+  }
+
   async function showDatePicker() {
     console.log('showDatePicker called');
     console.log('modal element:', modal);
@@ -182,18 +227,9 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('dateInput:', dateInput);
     console.log('timeInput:', timeInput);
 
-    // Format date as YYYY-MM-DD for date input
-    const year = defaultDateTime.getFullYear();
-    const month = String(defaultDateTime.getMonth() + 1).padStart(2, '0');
-    const day = String(defaultDateTime.getDate()).padStart(2, '0');
-    dateInput.value = `${year}-${month}-${day}`;
-
-    // Set minimum date to today
-    const today = new Date();
-    const minYear = today.getFullYear();
-    const minMonth = String(today.getMonth() + 1).padStart(2, '0');
-    const minDay = String(today.getDate()).padStart(2, '0');
-    dateInput.min = `${minYear}-${minMonth}-${minDay}`;
+    // Format date based on user preference
+    dateInput.value = formatDate(defaultDateTime, settings.dateFormat);
+    dateInput.placeholder = settings.dateFormat === 'DD-MM-YYYY' ? 'DD-MM-YYYY' : 'YYYY-MM-DD';
 
     timeInput.placeholder = settings.timeFormat === '12' ? '2:30 PM' : '14:30';
     timeInput.value = formatTime(defaultDateTime, settings.timeFormat);
@@ -243,15 +279,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateInput = document.getElementById('custom-date');
     const timeInput = document.getElementById('custom-time');
 
-    // Parse date from date input (YYYY-MM-DD format)
+    // Parse date based on user's format preference
     if (!dateInput.value) {
       alert('Please select a date');
       return;
     }
 
-    const [year, month, day] = dateInput.value.split('-').map(Number);
-    const parsedTime = parseTime(timeInput.value, settings.timeFormat);
+    const parsedDate = parseDate(dateInput.value, settings.dateFormat);
+    if (!parsedDate) {
+      const dateExample = settings.dateFormat === 'DD-MM-YYYY' ? 'DD-MM-YYYY' : 'YYYY-MM-DD';
+      alert(`Invalid date format. Please use: ${dateExample}`);
+      return;
+    }
 
+    const parsedTime = parseTime(timeInput.value, settings.timeFormat);
     if (!parsedTime) {
       const timeExample = settings.timeFormat === '12' ? '2:30 PM' : '14:30';
       alert(`Invalid time format. Please use: ${timeExample}`);
@@ -260,9 +301,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Create date in local timezone
     const selectedDateTime = new Date(
-      year,
-      month - 1,
-      day,
+      parsedDate.year,
+      parsedDate.month - 1,
+      parsedDate.day,
       parsedTime.hours,
       parsedTime.minutes,
       0,
