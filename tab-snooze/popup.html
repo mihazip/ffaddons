@@ -65,9 +65,24 @@
     <div class="modal-content">
       <h3>Pick a Date & Time</h3>
       <div class="date-time-inputs">
-        <div class="input-group">
-          <label for="custom-date">Date</label>
-          <input type="text" id="custom-date" placeholder="DD-MM-YYYY">
+        <div class="calendar-container">
+          <div class="calendar-header">
+            <button class="calendar-nav" id="prev-month">&lt;</button>
+            <div class="calendar-title" id="calendar-title">Month Year</div>
+            <button class="calendar-nav" id="next-month">&gt;</button>
+          </div>
+          <div class="calendar-weekdays">
+            <div class="weekday">Mon</div>
+            <div class="weekday">Tue</div>
+            <div class="weekday">Wed</div>
+            <div class="weekday">Thu</div>
+            <div class="weekday">Fri</div>
+            <div class="weekday">Sat</div>
+            <div class="weekday">Sun</div>
+          </div>
+          <div class="calendar-days" id="calendar-days">
+            <!-- Days will be populated by JavaScript -->
+          </div>
         </div>
         <div class="input-group">
           <label for="custom-time">Time</label>
