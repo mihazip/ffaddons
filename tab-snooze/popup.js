@@ -180,6 +180,12 @@ function initPopup() {
       console.log('modal element:', modal);
       console.log('modal current display:', modal ? modal.style.display : 'modal is null');
 
+      if (!modal) {
+        console.error('Modal element not found!');
+        alert('Error: Date picker modal not found. Please reload the extension.');
+        return;
+      }
+
       const settings = await getSettings();
       const now = new Date();
 
@@ -194,6 +200,7 @@ function initPopup() {
 
       if (!dateInput || !timeInput) {
         console.error('Date or time input not found!');
+        alert('Error: Date/time inputs not found. Please reload the extension.');
         return;
       }
 
@@ -214,11 +221,18 @@ function initPopup() {
       timeInput.value = formatTime(defaultDateTime, settings.timeFormat);
 
       console.log('Setting modal.style.display to flex');
+      // Force display and visibility
       modal.style.display = 'flex';
+      modal.style.visibility = 'visible';
+      modal.style.opacity = '1';
       console.log('modal.style.display is now:', modal.style.display);
       console.log('modal.style.cssText:', modal.style.cssText);
+
+      // Focus on date input to help with debugging
+      dateInput.focus();
     } catch (error) {
       console.error('Error in showDatePicker:', error);
+      alert('Error opening date picker: ' + error.message);
     }
   }
 
