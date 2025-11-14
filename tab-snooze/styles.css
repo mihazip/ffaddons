@@ -5,6 +5,7 @@ html, body {
   background: #1a1a2e;
   color: #eee;
   width: 320px;
+  min-height: 500px;
   position: relative;
   overflow-x: hidden;
 }
@@ -89,7 +90,7 @@ h2 {
   top: 0;
   left: 0;
   width: 320px;
-  min-height: 100vh;
+  min-height: 500px;
   background: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
