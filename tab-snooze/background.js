@@ -1,16 +1,33 @@
 // Storage key for snoozed tabs
 const SNOOZED_TABS_KEY = 'snoozedTabs';
+const PERIODIC_CHECK_ALARM = 'periodic-check-overdue';
+const CHECK_INTERVAL_MINUTES = 2; // Check every 2 minutes for overdue tabs
+
+// Initialize periodic check alarm
+async function initPeriodicCheck() {
+  // Clear any existing periodic alarm
+  await browser.alarms.clear(PERIODIC_CHECK_ALARM);
+
+  // Create new periodic alarm to check for overdue tabs
+  await browser.alarms.create(PERIODIC_CHECK_ALARM, {
+    periodInMinutes: CHECK_INTERVAL_MINUTES
+  });
+
+  console.log(`Periodic check alarm created (every ${CHECK_INTERVAL_MINUTES} minutes)`);
+}
 
 // Initialize extension
-browser.runtime.onInstalled.addListener(() => {
+browser.runtime.onInstalled.addListener(async () => {
   console.log('Tab Snooze extension installed');
-  checkAndOpenSnoozedTabs();
+  await initPeriodicCheck();
+  await checkAndOpenSnoozedTabs();
 });
 
 // Check for snoozed tabs on browser startup
-browser.runtime.onStartup.addListener(() => {
+browser.runtime.onStartup.addListener(async () => {
   console.log('Browser started, checking for snoozed tabs');
-  checkAndOpenSnoozedTabs();
+  await initPeriodicCheck();
+  await checkAndOpenSnoozedTabs();
 });
 
 // Listen for messages from popup
@@ -32,7 +49,12 @@ browser.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
 // Listen for alarms
 browser.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name.startsWith('snooze-')) {
+  if (alarm.name === PERIODIC_CHECK_ALARM) {
+    // Periodic check for overdue tabs (safety net for missed alarms)
+    console.log('Running periodic check for overdue tabs');
+    await checkAndOpenSnoozedTabs();
+  } else if (alarm.name.startsWith('snooze-')) {
+    // Individual tab alarm
     const snoozeId = alarm.name.replace('snooze-', '');
     await openSnoozedTab(snoozeId);
   }
