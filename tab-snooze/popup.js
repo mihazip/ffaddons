@@ -65,6 +65,86 @@ async function calculateSnoozeTime(option) {
   }
 }
 
+// Format timing display for a button option
+async function formatTimingDisplay(option) {
+  const snoozeTime = await calculateSnoozeTime(option);
+  if (!snoozeTime) return '';
+
+  const targetDate = new Date(snoozeTime);
+  const now = new Date();
+  const settings = await getSettings();
+
+  // Helper to format time
+  const formatTimeString = (date) => {
+    const hours24 = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    if (settings.timeFormat === '12') {
+      const hours12 = hours24 % 12 || 12;
+      const period = hours24 < 12 ? 'AM' : 'PM';
+      return `${hours12}:${minutes} ${period}`;
+    } else {
+      const hours = String(hours24).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+  };
+
+  // Helper to get day name
+  const getDayName = (date) => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return days[date.getDay()];
+  };
+
+  // Helper to format date
+  const formatDateString = (date) => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[date.getMonth()]} ${date.getDate()}`;
+  };
+
+  switch(option) {
+    case 'later-today': {
+      const hoursDiff = Math.round((snoozeTime - now.getTime()) / (1000 * 60 * 60));
+      if (hoursDiff === 1) {
+        return 'in 1 hour';
+      } else {
+        return `in ${hoursDiff} hours`;
+      }
+    }
+
+    case 'this-eve': {
+      const todayEvening = new Date();
+      todayEvening.setHours(18, 0, 0, 0);
+      if (targetDate.getDate() === now.getDate()) {
+        return formatTimeString(targetDate);
+      } else {
+        return `tomorrow ${formatTimeString(targetDate)}`;
+      }
+    }
+
+    case 'tomorrow':
+      return formatTimeString(targetDate);
+
+    case 'tomorrow-eve':
+      return formatTimeString(targetDate);
+
+    case 'next-weekend':
+      return `${getDayName(targetDate)}, ${formatDateString(targetDate)}`;
+
+    case 'next-week': {
+      return `${getDayName(targetDate)}, ${formatDateString(targetDate)}`;
+    }
+
+    case 'in-a-month':
+      return formatDateString(targetDate);
+
+    case 'someday':
+      return 'in 3 months';
+
+    default:
+      return '';
+  }
+}
+
 // Snooze the current tab
 async function snoozeTab(option, customTime = null) {
   try {
@@ -109,7 +189,7 @@ async function snoozeTab(option, customTime = null) {
 }
 
 // Initialize popup
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   console.log('Popup DOMContentLoaded');
 
   // Date picker modal elements
@@ -118,6 +198,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelBtn = document.getElementById('cancel-date-btn');
 
   console.log('Modal elements:', { modal, confirmBtn, cancelBtn });
+
+  // Update timing displays for all snooze buttons
+  const snoozeOptions = ['later-today', 'this-eve', 'tomorrow', 'tomorrow-eve', 'next-weekend', 'next-week', 'in-a-month', 'someday'];
+  for (const option of snoozeOptions) {
+    const button = document.querySelector(`[data-option="${option}"]`);
+    if (button) {
+      const timingElement = button.querySelector('.timing');
+      if (timingElement) {
+        const timingText = await formatTimingDisplay(option);
+        timingElement.textContent = timingText;
+      }
+    }
+  }
 
   // Format time based on user preference
   function formatTime(date, format) {
