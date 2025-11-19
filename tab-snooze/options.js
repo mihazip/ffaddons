@@ -6,7 +6,7 @@ const defaultSettings = {
   dateFormat: 'DD-MM-YYYY',
   timeFormat: '24',
   showSnoozeNotification: true,
-  showUnsnoozeNotification: true
+  unsnoozeNotificationMode: 'individual' // 'individual', 'bundled', or 'off'
 };
 
 // Load settings when page opens
@@ -28,7 +28,7 @@ async function loadSettings() {
     document.getElementById('date-format').value = settings.dateFormat;
     document.getElementById('time-format').value = settings.timeFormat;
     document.getElementById('show-snooze-notification').checked = settings.showSnoozeNotification;
-    document.getElementById('show-unsnooze-notification').checked = settings.showUnsnoozeNotification;
+    document.getElementById('unsnooze-notification-mode').value = settings.unsnoozeNotificationMode;
   } catch (error) {
     console.error('Error loading settings:', error);
     showStatus('Error loading settings', 'error');
@@ -45,7 +45,7 @@ async function saveSettings() {
       dateFormat: document.getElementById('date-format').value,
       timeFormat: document.getElementById('time-format').value,
       showSnoozeNotification: document.getElementById('show-snooze-notification').checked,
-      showUnsnoozeNotification: document.getElementById('show-unsnooze-notification').checked
+      unsnoozeNotificationMode: document.getElementById('unsnooze-notification-mode').value
     };
 
     // Validate
