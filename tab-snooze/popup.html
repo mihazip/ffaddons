@@ -104,6 +104,150 @@
     </div>
   </div>
 
+  <!-- Recurring event modal -->
+  <div id="recurring-modal" class="modal" style="display: none;">
+    <div class="modal-content recurring-modal-content">
+      <h3>Snooze Repeatedly</h3>
+
+      <div class="recurring-inputs">
+        <!-- Frequency Selection -->
+        <div class="input-group">
+          <label>Frequency</label>
+          <div class="frequency-buttons">
+            <button class="frequency-btn active" data-frequency="daily">Daily</button>
+            <button class="frequency-btn" data-frequency="weekly">Weekly</button>
+            <button class="frequency-btn" data-frequency="monthly">Monthly</button>
+            <button class="frequency-btn" data-frequency="yearly">Yearly</button>
+          </div>
+        </div>
+
+        <!-- Time Input (shared by all frequencies) -->
+        <div class="input-group">
+          <label for="recurring-time">Time</label>
+          <input type="text" id="recurring-time" placeholder="14:30">
+        </div>
+
+        <!-- Weekly: Day of Week Selection -->
+        <div class="input-group recurring-option" id="weekly-options" style="display: none;">
+          <label>Days of Week</label>
+          <div class="day-checkboxes">
+            <label class="checkbox-label"><input type="checkbox" value="1"> Mon</label>
+            <label class="checkbox-label"><input type="checkbox" value="2"> Tue</label>
+            <label class="checkbox-label"><input type="checkbox" value="3"> Wed</label>
+            <label class="checkbox-label"><input type="checkbox" value="4"> Thu</label>
+            <label class="checkbox-label"><input type="checkbox" value="5"> Fri</label>
+            <label class="checkbox-label"><input type="checkbox" value="6"> Sat</label>
+            <label class="checkbox-label"><input type="checkbox" value="0"> Sun</label>
+          </div>
+        </div>
+
+        <!-- Monthly: Day of Month Selection -->
+        <div class="input-group recurring-option" id="monthly-options" style="display: none;">
+          <label for="day-of-month">Day of Month</label>
+          <select id="day-of-month">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+            <option value="16">16</option>
+            <option value="17">17</option>
+            <option value="18">18</option>
+            <option value="19">19</option>
+            <option value="20">20</option>
+            <option value="21">21</option>
+            <option value="22">22</option>
+            <option value="23">23</option>
+            <option value="24">24</option>
+            <option value="25">25</option>
+            <option value="26">26</option>
+            <option value="27">27</option>
+            <option value="28">28</option>
+            <option value="29">29</option>
+            <option value="30">30</option>
+            <option value="31">31</option>
+          </select>
+        </div>
+
+        <!-- Yearly: Month and Day Selection -->
+        <div class="input-group recurring-option" id="yearly-options" style="display: none;">
+          <label for="month-of-year">Month</label>
+          <select id="month-of-year">
+            <option value="0">January</option>
+            <option value="1">February</option>
+            <option value="2">March</option>
+            <option value="3">April</option>
+            <option value="4">May</option>
+            <option value="5">June</option>
+            <option value="6">July</option>
+            <option value="7">August</option>
+            <option value="8">September</option>
+            <option value="9">October</option>
+            <option value="10">November</option>
+            <option value="11">December</option>
+          </select>
+          <label for="day-of-month-yearly" style="margin-top: 8px;">Day of Month</label>
+          <select id="day-of-month-yearly">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+            <option value="16">16</option>
+            <option value="17">17</option>
+            <option value="18">18</option>
+            <option value="19">19</option>
+            <option value="20">20</option>
+            <option value="21">21</option>
+            <option value="22">22</option>
+            <option value="23">23</option>
+            <option value="24">24</option>
+            <option value="25">25</option>
+            <option value="26">26</option>
+            <option value="27">27</option>
+            <option value="28">28</option>
+            <option value="29">29</option>
+            <option value="30">30</option>
+            <option value="31">31</option>
+          </select>
+        </div>
+
+        <!-- Optional: End Date -->
+        <div class="input-group">
+          <label>
+            <input type="checkbox" id="enable-end-date"> End after a specific date
+          </label>
+          <input type="date" id="end-date" style="display: none; margin-top: 8px;">
+        </div>
+      </div>
+
+      <div class="modal-buttons">
+        <button id="confirm-recurring-btn">Snooze Repeatedly</button>
+        <button id="cancel-recurring-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

@@ -35,6 +35,9 @@ browser.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.action === 'snoozeTab') {
     await handleSnoozeTab(message.tab, message.snoozeTime);
     return true;
+  } else if (message.action === 'snoozeRecurring') {
+    await handleSnoozeRecurring(message.tab, message.firstOccurrence, message.recurrencePattern);
+    return true;
   } else if (message.action === 'getSnoozedTabs') {
     const tabs = await getSnoozedTabs();
     return Promise.resolve(tabs);
@@ -106,6 +109,145 @@ async function handleSnoozeTab(tab, snoozeTime) {
   }
 }
 
+// Handle snoozing a recurring tab
+async function handleSnoozeRecurring(tab, firstOccurrence, recurrencePattern) {
+  try {
+    // Generate unique series ID for this recurring tab
+    const seriesId = `series-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create the first instance
+    await createRecurringInstance(tab, firstOccurrence, recurrencePattern, seriesId, 1);
+
+    console.log(`Recurring tab scheduled: ${recurrencePattern.frequency}`);
+  } catch (error) {
+    console.error('Error handling recurring snooze:', error);
+  }
+}
+
+// Create a recurring instance
+async function createRecurringInstance(tab, snoozeTime, recurrencePattern, seriesId, instanceNumber) {
+  try {
+    // Generate unique ID for this instance
+    const snoozeId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Get existing snoozed tabs
+    const snoozedTabs = await getSnoozedTabs();
+
+    // Add new recurring snooze
+    snoozedTabs[snoozeId] = {
+      id: snoozeId,
+      url: tab.url,
+      title: tab.title,
+      favIconUrl: tab.favIconUrl,
+      snoozeTime: snoozeTime,
+      createdAt: Date.now(),
+      recurring: true,
+      recurrencePattern: recurrencePattern,
+      seriesId: seriesId,
+      instanceNumber: instanceNumber
+    };
+
+    // Save to storage
+    await browser.storage.local.set({ [SNOOZED_TABS_KEY]: snoozedTabs });
+
+    // Create alarm
+    await browser.alarms.create(`snooze-${snoozeId}`, {
+      when: snoozeTime
+    });
+
+    // Show notification for first instance only
+    if (instanceNumber === 1) {
+      const snoozeDate = new Date(snoozeTime);
+      browser.notifications.create({
+        type: 'basic',
+        iconUrl: browser.runtime.getURL('icons/moon-48.png'),
+        title: 'Recurring Tab Snoozed',
+        message: `"${tab.title}" will reopen ${recurrencePattern.frequency} starting ${snoozeDate.toLocaleString()}`
+      });
+
+      // Close the tab only on first instance
+      await browser.tabs.remove(tab.id);
+    }
+
+    console.log(`Recurring instance ${instanceNumber} scheduled for ${new Date(snoozeTime).toLocaleString()}`);
+  } catch (error) {
+    console.error('Error creating recurring instance:', error);
+  }
+}
+
+// Calculate next occurrence for a recurring event
+function calculateNextOccurrence(currentTime, recurrencePattern) {
+  const current = new Date(currentTime);
+  const pattern = recurrencePattern;
+
+  // Extract time from current occurrence
+  const hours = current.getHours();
+  const minutes = current.getMinutes();
+
+  let next;
+
+  switch (pattern.frequency) {
+    case 'daily':
+      // Next day at the same time
+      next = new Date(current);
+      next.setDate(next.getDate() + 1);
+      break;
+
+    case 'weekly':
+      // Next occurrence on selected days of week
+      next = new Date(current);
+      next.setDate(next.getDate() + 1); // Start from next day
+
+      // Find next matching day of week
+      let daysChecked = 0;
+      while (daysChecked < 7) {
+        const dayOfWeek = next.getDay();
+        if (pattern.daysOfWeek.includes(dayOfWeek)) {
+          break;
+        }
+        next.setDate(next.getDate() + 1);
+        daysChecked++;
+      }
+
+      // If no matching day found in next 7 days, something is wrong
+      if (daysChecked >= 7) {
+        return null;
+      }
+      break;
+
+    case 'monthly':
+      // Next month on the same date
+      next = new Date(current);
+      next.setMonth(next.getMonth() + 1);
+
+      // Handle shorter months (e.g., Jan 31 -> Feb 28/29)
+      const targetDay = pattern.dayOfMonth;
+      const daysInNextMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+      next.setDate(Math.min(targetDay, daysInNextMonth));
+      break;
+
+    case 'yearly':
+      // Next year on the same date and month
+      next = new Date(current);
+      next.setFullYear(next.getFullYear() + 1);
+      next.setMonth(pattern.month);
+
+      // Handle leap year (Feb 29)
+      const targetDayYearly = pattern.dayOfMonth;
+      const daysInMonth = new Date(next.getFullYear(), pattern.month + 1, 0).getDate();
+      next.setDate(Math.min(targetDayYearly, daysInMonth));
+      break;
+
+    default:
+      return null;
+  }
+
+  // Set the time
+  next.setHours(hours, minutes, 0, 0);
+
+  return next.getTime();
+}
+
 // Get all snoozed tabs from storage
 async function getSnoozedTabs() {
   const result = await browser.storage.local.get(SNOOZED_TABS_KEY);
@@ -130,14 +272,43 @@ async function openSnoozedTab(snoozeId) {
     });
 
     // Show notification
+    const notificationMessage = snooze.recurring
+      ? `"${snooze.title}" is now open (recurring ${snooze.recurrencePattern.frequency})`
+      : `"${snooze.title}" is now open`;
+
     browser.notifications.create({
       type: 'basic',
       iconUrl: browser.runtime.getURL('icons/moon-48.png'),
       title: 'Tab Unsnoozed',
-      message: `"${snooze.title}" is now open`
+      message: notificationMessage
     });
 
-    // Remove from storage
+    // If this is a recurring tab, schedule the next occurrence
+    if (snooze.recurring) {
+      const nextTime = calculateNextOccurrence(snooze.snoozeTime, snooze.recurrencePattern);
+
+      if (nextTime) {
+        // Check if we should continue recurring (endDate check)
+        const shouldContinue = !snooze.recurrencePattern.endDate || nextTime <= snooze.recurrencePattern.endDate;
+
+        if (shouldContinue) {
+          // Create next instance
+          await createRecurringInstance(
+            { url: snooze.url, title: snooze.title, favIconUrl: snooze.favIconUrl },
+            nextTime,
+            snooze.recurrencePattern,
+            snooze.seriesId,
+            snooze.instanceNumber + 1
+          );
+
+          console.log(`Next recurring instance scheduled for ${new Date(nextTime).toLocaleString()}`);
+        } else {
+          console.log('Recurring series ended (reached end date)');
+        }
+      }
+    }
+
+    // Remove current instance from storage
     delete snoozedTabs[snoozeId];
     await browser.storage.local.set({ [SNOOZED_TABS_KEY]: snoozedTabs });
 
