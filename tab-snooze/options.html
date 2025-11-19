@@ -173,10 +173,13 @@
     </div>
 
     <div class="setting-item">
-      <label for="show-unsnooze-notification">
-        <input type="checkbox" id="show-unsnooze-notification" checked>
-        Show notification when tab is unsnoozed
-      </label>
+      <label for="unsnooze-notification-mode">Tab Restored Notifications</label>
+      <select id="unsnooze-notification-mode">
+        <option value="individual">Individual - One notification per tab</option>
+        <option value="bundled">Bundled - One notification for all tabs</option>
+        <option value="off">Off - No notifications (silent)</option>
+      </select>
+      <div class="description">How to show notifications when snoozed tabs wake up</div>
     </div>
   </div>
 

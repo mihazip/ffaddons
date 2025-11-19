@@ -3,6 +3,11 @@ const SNOOZED_TABS_KEY = 'snoozedTabs';
 const PERIODIC_CHECK_ALARM = 'periodic-check-overdue';
 const CHECK_INTERVAL_MINUTES = 2; // Check every 2 minutes for overdue tabs
 
+// Notification queue for bundling
+let notificationQueue = [];
+let notificationTimer = null;
+const NOTIFICATION_BATCH_DELAY = 2000; // 2 seconds to batch notifications
+
 // Initialize periodic check alarm
 async function initPeriodicCheck() {
   // Clear any existing periodic alarm
@@ -63,6 +68,83 @@ browser.alarms.onAlarm.addListener(async (alarm) => {
   }
 });
 
+// Queue a notification for a restored tab
+function queueNotification(tabTitle, isRecurring, recurrenceFrequency) {
+  notificationQueue.push({
+    title: tabTitle,
+    isRecurring: isRecurring,
+    recurrenceFrequency: recurrenceFrequency
+  });
+
+  // Reset the timer - we'll wait for all tabs to be queued
+  if (notificationTimer) {
+    clearTimeout(notificationTimer);
+  }
+
+  notificationTimer = setTimeout(() => {
+    flushNotificationQueue();
+  }, NOTIFICATION_BATCH_DELAY);
+}
+
+// Flush the notification queue and show notifications based on mode
+async function flushNotificationQueue() {
+  if (notificationQueue.length === 0) {
+    return;
+  }
+
+  // Get notification settings
+  const settings = await browser.storage.sync.get({
+    unsnoozeNotificationMode: 'individual'
+  });
+
+  const mode = settings.unsnoozeNotificationMode;
+
+  if (mode === 'off') {
+    // No notifications - just clear the queue
+    notificationQueue = [];
+    return;
+  }
+
+  if (mode === 'bundled') {
+    // Show one bundled notification
+    const count = notificationQueue.length;
+    let message;
+
+    if (count === 1) {
+      const tab = notificationQueue[0];
+      message = tab.isRecurring
+        ? `"${tab.title}" is now open (recurring ${tab.recurrenceFrequency})`
+        : `"${tab.title}" is now open`;
+    } else {
+      message = `${count} tabs have been restored`;
+    }
+
+    browser.notifications.create({
+      type: 'basic',
+      iconUrl: browser.runtime.getURL('icons/moon-48.png'),
+      title: 'Tabs Unsnoozed',
+      message: message
+    });
+  } else {
+    // Individual mode - show one notification per tab
+    for (const tab of notificationQueue) {
+      const message = tab.isRecurring
+        ? `"${tab.title}" is now open (recurring ${tab.recurrenceFrequency})`
+        : `"${tab.title}" is now open`;
+
+      browser.notifications.create({
+        type: 'basic',
+        iconUrl: browser.runtime.getURL('icons/moon-48.png'),
+        title: 'Tab Unsnoozed',
+        message: message
+      });
+    }
+  }
+
+  // Clear the queue
+  notificationQueue = [];
+}
+
 // Handle snoozing a tab
 async function handleSnoozeTab(tab, snoozeTime) {
   try {
@@ -91,14 +173,20 @@ async function handleSnoozeTab(tab, snoozeTime) {
       when: alarmTime
     });
 
-    // Show notification
-    const snoozeDate = new Date(snoozeTime);
-    browser.notifications.create({
-      type: 'basic',
-      iconUrl: browser.runtime.getURL('icons/moon-48.png'),
-      title: 'Tab Snoozed',
-      message: `"${tab.title}" will reopen on ${snoozeDate.toLocaleString()}`
+    // Show notification if enabled
+    const settings = await browser.storage.sync.get({
+      showSnoozeNotification: true
     });
+
+    if (settings.showSnoozeNotification) {
+      const snoozeDate = new Date(snoozeTime);
+      browser.notifications.create({
+        type: 'basic',
+        iconUrl: browser.runtime.getURL('icons/moon-48.png'),
+        title: 'Tab Snoozed',
+        message: `"${tab.title}" will reopen on ${snoozeDate.toLocaleString()}`
+      });
+    }
 
     // Close the tab
     await browser.tabs.remove(tab.id);
@@ -157,13 +245,19 @@ async function createRecurringInstance(tab, snoozeTime, recurrencePattern, serie
 
     // Show notification for first instance only
     if (instanceNumber === 1) {
-      const snoozeDate = new Date(snoozeTime);
-      browser.notifications.create({
-        type: 'basic',
-        iconUrl: browser.runtime.getURL('icons/moon-48.png'),
-        title: 'Recurring Tab Snoozed',
-        message: `"${tab.title}" will reopen ${recurrencePattern.frequency} starting ${snoozeDate.toLocaleString()}`
+      const settings = await browser.storage.sync.get({
+        showSnoozeNotification: true
       });
+
+      if (settings.showSnoozeNotification) {
+        const snoozeDate = new Date(snoozeTime);
+        browser.notifications.create({
+          type: 'basic',
+          iconUrl: browser.runtime.getURL('icons/moon-48.png'),
+          title: 'Recurring Tab Snoozed',
+          message: `"${tab.title}" will reopen ${recurrencePattern.frequency} starting ${snoozeDate.toLocaleString()}`
+        });
+      }
 
       // Close the tab only on first instance
       await browser.tabs.remove(tab.id);
@@ -271,17 +365,12 @@ async function openSnoozedTab(snoozeId) {
       active: true
     });
 
-    // Show notification
-    const notificationMessage = snooze.recurring
-      ? `"${snooze.title}" is now open (recurring ${snooze.recurrencePattern.frequency})`
-      : `"${snooze.title}" is now open`;
-
-    browser.notifications.create({
-      type: 'basic',
-      iconUrl: browser.runtime.getURL('icons/moon-48.png'),
-      title: 'Tab Unsnoozed',
-      message: notificationMessage
-    });
+    // Queue notification (will be shown based on user's notification mode preference)
+    queueNotification(
+      snooze.title,
+      snooze.recurring || false,
+      snooze.recurring ? snooze.recurrencePattern.frequency : null
+    );
 
     // If this is a recurring tab, schedule the next occurrence
     if (snooze.recurring) {
