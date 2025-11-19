@@ -433,8 +433,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Pick date option selected, calling showDatePicker');
         showDatePicker();
       } else if (option === 'repeatedly') {
-        // TODO: Implement repeatedly functionality
-        alert('Repeatedly feature coming soon!');
+        showRecurringModal();
       } else {
         snoozeTab(option);
       }
@@ -516,6 +515,240 @@ document.addEventListener('DOMContentLoaded', async () => {
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
       modal.style.display = 'none';
+    }
+  });
+
+  // ===== RECURRING EVENT MODAL =====
+
+  const recurringModal = document.getElementById('recurring-modal');
+  const confirmRecurringBtn = document.getElementById('confirm-recurring-btn');
+  const cancelRecurringBtn = document.getElementById('cancel-recurring-btn');
+  const frequencyButtons = document.querySelectorAll('.frequency-btn');
+  const enableEndDateCheckbox = document.getElementById('enable-end-date');
+  const endDateInput = document.getElementById('end-date');
+
+  // Track current frequency
+  let currentFrequency = 'daily';
+
+  // Show recurring modal
+  async function showRecurringModal() {
+    const settings = await getSettings();
+    const now = new Date();
+
+    // Set default time to 1 minute from now
+    const defaultDateTime = new Date(now.getTime() + 60 * 1000);
+    const recurringTimeInput = document.getElementById('recurring-time');
+
+    recurringTimeInput.placeholder = settings.timeFormat === '12' ? '2:30 PM' : '14:30';
+    recurringTimeInput.value = formatTime(defaultDateTime, settings.timeFormat);
+
+    // Reset frequency to daily
+    currentFrequency = 'daily';
+    frequencyButtons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.frequency === 'daily');
+    });
+
+    // Hide all frequency-specific options
+    document.querySelectorAll('.recurring-option').forEach(el => {
+      el.style.display = 'none';
+    });
+
+    // Reset end date
+    enableEndDateCheckbox.checked = false;
+    endDateInput.style.display = 'none';
+    endDateInput.value = '';
+
+    // Set defaults for monthly and yearly based on current date
+    const dayOfMonth = now.getDate();
+    const month = now.getMonth();
+    document.getElementById('day-of-month').value = dayOfMonth;
+    document.getElementById('day-of-month-yearly').value = dayOfMonth;
+    document.getElementById('month-of-year').value = month;
+
+    // Show modal
+    recurringModal.style.display = 'flex';
+  }
+
+  // Handle frequency button clicks
+  frequencyButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Update active state
+      frequencyButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Update current frequency
+      currentFrequency = btn.dataset.frequency;
+
+      // Hide all frequency-specific options
+      document.querySelectorAll('.recurring-option').forEach(el => {
+        el.style.display = 'none';
+      });
+
+      // Show relevant options based on frequency
+      if (currentFrequency === 'weekly') {
+        document.getElementById('weekly-options').style.display = 'block';
+      } else if (currentFrequency === 'monthly') {
+        document.getElementById('monthly-options').style.display = 'block';
+      } else if (currentFrequency === 'yearly') {
+        document.getElementById('yearly-options').style.display = 'block';
+      }
+    });
+  });
+
+  // Handle enable end date checkbox
+  enableEndDateCheckbox.addEventListener('change', () => {
+    endDateInput.style.display = enableEndDateCheckbox.checked ? 'block' : 'none';
+    if (enableEndDateCheckbox.checked) {
+      // Set default end date to 1 year from now
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+      endDateInput.value = oneYearFromNow.toISOString().split('T')[0];
+    }
+  });
+
+  // Confirm recurring button handler
+  confirmRecurringBtn.addEventListener('click', async () => {
+    try {
+      const settings = await getSettings();
+      const recurringTimeInput = document.getElementById('recurring-time');
+
+      // Parse time
+      const parsedTime = parseTime(recurringTimeInput.value, settings.timeFormat);
+      if (!parsedTime) {
+        const timeExample = settings.timeFormat === '12' ? '2:30 PM' : '14:30';
+        alert(`Invalid time format. Please use: ${timeExample}`);
+        return;
+      }
+
+      // Build recurrence pattern
+      const recurrencePattern = {
+        frequency: currentFrequency
+      };
+
+      // Calculate first occurrence
+      const now = new Date();
+      let firstOccurrence = new Date();
+      firstOccurrence.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
+
+      // If the time has already passed today, start tomorrow
+      if (firstOccurrence.getTime() <= now.getTime()) {
+        firstOccurrence.setDate(firstOccurrence.getDate() + 1);
+      }
+
+      // Add frequency-specific options
+      if (currentFrequency === 'weekly') {
+        // Get selected days of week
+        const checkboxes = document.querySelectorAll('#weekly-options input[type="checkbox"]:checked');
+        const selectedDays = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+        if (selectedDays.length === 0) {
+          alert('Please select at least one day of the week');
+          return;
+        }
+
+        recurrencePattern.daysOfWeek = selectedDays;
+
+        // Adjust first occurrence to next selected day of week
+        let daysToAdd = 0;
+        const maxDaysToCheck = 7;
+        while (daysToAdd < maxDaysToCheck) {
+          const checkDate = new Date(firstOccurrence);
+          checkDate.setDate(checkDate.getDate() + daysToAdd);
+          if (selectedDays.includes(checkDate.getDay())) {
+            firstOccurrence.setDate(firstOccurrence.getDate() + daysToAdd);
+            break;
+          }
+          daysToAdd++;
+        }
+      } else if (currentFrequency === 'monthly') {
+        const dayOfMonth = parseInt(document.getElementById('day-of-month').value);
+        recurrencePattern.dayOfMonth = dayOfMonth;
+
+        // Set first occurrence to the selected day of this month
+        firstOccurrence.setDate(dayOfMonth);
+
+        // If already passed this month, move to next month
+        if (firstOccurrence.getTime() <= now.getTime()) {
+          firstOccurrence.setMonth(firstOccurrence.getMonth() + 1);
+        }
+
+        // Handle shorter months
+        const daysInMonth = new Date(firstOccurrence.getFullYear(), firstOccurrence.getMonth() + 1, 0).getDate();
+        firstOccurrence.setDate(Math.min(dayOfMonth, daysInMonth));
+      } else if (currentFrequency === 'yearly') {
+        const month = parseInt(document.getElementById('month-of-year').value);
+        const dayOfMonth = parseInt(document.getElementById('day-of-month-yearly').value);
+
+        recurrencePattern.month = month;
+        recurrencePattern.dayOfMonth = dayOfMonth;
+
+        // Set first occurrence to the selected month and day
+        firstOccurrence.setMonth(month);
+        firstOccurrence.setDate(dayOfMonth);
+
+        // If already passed this year, move to next year
+        if (firstOccurrence.getTime() <= now.getTime()) {
+          firstOccurrence.setFullYear(firstOccurrence.getFullYear() + 1);
+        }
+
+        // Handle leap year (Feb 29)
+        const daysInMonth = new Date(firstOccurrence.getFullYear(), month + 1, 0).getDate();
+        firstOccurrence.setDate(Math.min(dayOfMonth, daysInMonth));
+      }
+
+      // Add end date if specified
+      if (enableEndDateCheckbox.checked && endDateInput.value) {
+        const endDate = new Date(endDateInput.value);
+        endDate.setHours(23, 59, 59, 999); // End of day
+        recurrencePattern.endDate = endDate.getTime();
+
+        // Validate end date is after first occurrence
+        if (recurrencePattern.endDate <= firstOccurrence.getTime()) {
+          alert('End date must be after the first occurrence');
+          return;
+        }
+      }
+
+      // Get current tab
+      const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+      const tab = tabs[0];
+
+      if (!tab) {
+        console.error('No active tab found');
+        return;
+      }
+
+      // Send message to background script
+      await browser.runtime.sendMessage({
+        action: 'snoozeRecurring',
+        tab: {
+          id: tab.id,
+          url: tab.url,
+          title: tab.title,
+          favIconUrl: tab.favIconUrl
+        },
+        firstOccurrence: firstOccurrence.getTime(),
+        recurrencePattern: recurrencePattern
+      });
+
+      // Close modal and popup
+      recurringModal.style.display = 'none';
+      window.close();
+    } catch (error) {
+      console.error('Error setting up recurring snooze:', error);
+      alert('Error setting up recurring snooze. Please try again.');
+    }
+  });
+
+  // Cancel recurring button handler
+  cancelRecurringBtn.addEventListener('click', () => {
+    recurringModal.style.display = 'none';
+  });
+
+  // Close recurring modal on background click
+  recurringModal.addEventListener('click', (e) => {
+    if (e.target === recurringModal) {
+      recurringModal.style.display = 'none';
     }
   });
 });

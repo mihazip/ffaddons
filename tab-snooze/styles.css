@@ -293,3 +293,140 @@ h2 {
   border: none;
   cursor: default;
 }
+
+/* Recurring modal styles */
+.recurring-modal-content {
+  width: 340px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.recurring-inputs {
+  margin-bottom: 16px;
+}
+
+.frequency-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.frequency-btn {
+  padding: 10px;
+  background: #1a1a2e;
+  border: 2px solid #0f3460;
+  border-radius: 6px;
+  color: #eee;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.frequency-btn:hover {
+  background: #0f3460;
+  border-color: #53a8b6;
+}
+
+.frequency-btn.active {
+  background: #53a8b6;
+  border-color: #53a8b6;
+  color: #fff;
+}
+
+.day-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 6px;
+  background: #1a1a2e;
+  border: 2px solid #0f3460;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.checkbox-label:hover {
+  background: #0f3460;
+  border-color: #53a8b6;
+}
+
+.checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+
+.checkbox-label input[type="checkbox"]:checked {
+  accent-color: #53a8b6;
+}
+
+.recurring-inputs select {
+  width: 100%;
+  padding: 8px;
+  border: 2px solid #0f3460;
+  border-radius: 6px;
+  background: #1a1a2e;
+  color: #eee;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.recurring-inputs select:focus {
+  outline: none;
+  border-color: #53a8b6;
+}
+
+.recurring-inputs input[type="date"] {
+  width: 100%;
+  padding: 8px;
+  border: 2px solid #0f3460;
+  border-radius: 6px;
+  background: #1a1a2e;
+  color: #eee;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.recurring-inputs input[type="date"]:focus {
+  outline: none;
+  border-color: #53a8b6;
+}
+
+.recurring-inputs input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.recurring-inputs input[type="checkbox"]:checked {
+  accent-color: #53a8b6;
+}
+
+.recurring-option {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
