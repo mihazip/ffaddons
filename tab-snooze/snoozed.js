@@ -63,16 +63,48 @@ function createTabItem(tab) {
        <div class="favicon-placeholder" style="display:none;">🌐</div>`
     : `<div class="favicon-placeholder">🌐</div>`;
 
+  // Generate recurring badge and info if applicable
+  let recurringBadge = '';
+  let recurringInfo = '';
+  if (tab.recurring && tab.recurrencePattern) {
+    const pattern = tab.recurrencePattern;
+    recurringBadge = `<span class="recurring-badge">🔄 ${capitalizeFirst(pattern.frequency)}</span>`;
+
+    // Generate detailed recurrence info
+    let details = '';
+    if (pattern.frequency === 'weekly' && pattern.daysOfWeek) {
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const days = pattern.daysOfWeek.map(d => dayNames[d]).join(', ');
+      details = ` on ${days}`;
+    } else if (pattern.frequency === 'monthly' && pattern.dayOfMonth) {
+      details = ` on day ${pattern.dayOfMonth}`;
+    } else if (pattern.frequency === 'yearly' && pattern.month !== undefined && pattern.dayOfMonth) {
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      details = ` on ${monthNames[pattern.month]} ${pattern.dayOfMonth}`;
+    }
+
+    recurringInfo = `<div class="recurring-info">Repeats ${pattern.frequency}${details}</div>`;
+
+    if (pattern.endDate) {
+      const endDate = new Date(pattern.endDate);
+      recurringInfo += `<div class="recurring-info">Ends: ${endDate.toLocaleDateString()}</div>`;
+    }
+  }
+
   return `
-    <div class="snoozed-item">
+    <div class="snoozed-item ${tab.recurring ? 'recurring-item' : ''}">
       ${faviconHtml}
       <div class="tab-info">
-        <div class="tab-title">${escapeHtml(tab.title)}</div>
+        <div class="tab-title">
+          ${escapeHtml(tab.title)}
+          ${recurringBadge}
+        </div>
         <div class="tab-url">${escapeHtml(tab.url)}</div>
+        ${recurringInfo}
       </div>
       <div class="snooze-info">
         <div class="snooze-time">${timeUntil}</div>
-        <div class="snooze-date">${snoozeDate.toLocaleString()}</div>
+        <div class="snooze-date">${tab.recurring ? 'Next: ' : ''}${snoozeDate.toLocaleString()}</div>
       </div>
       <div class="actions">
         <button id="open-${tab.id}" class="action-btn open-now-btn">Open Now</button>
@@ -80,6 +112,10 @@ function createTabItem(tab) {
       </div>
     </div>
   `;
+}
+
+function capitalizeFirst(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function getTimeUntil(now, future) {
