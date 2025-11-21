@@ -2,6 +2,13 @@
 async function getSettings() {
   const defaults = {
     laterTodayHours: 3,
+    eveningTime: '18:00',
+    morningTime: '09:00',
+    weekendTime: '10:00',
+    somedayValue: 3,
+    somedayUnit: 'months',
+    showPickDate: true,
+    showRepeatedly: true,
     dateFormat: 'DD-MM-YYYY',
     timeFormat: '24'
   };
@@ -20,45 +27,72 @@ async function calculateSnoozeTime(option) {
       now.setHours(now.getHours() + settings.laterTodayHours);
       return now.getTime();
 
-    case 'this-eve':
-      now.setHours(18, 0, 0, 0);
+    case 'this-eve': {
+      const [eveHours, eveMinutes] = settings.eveningTime.split(':').map(Number);
+      now.setHours(eveHours, eveMinutes, 0, 0);
       if (now.getTime() <= Date.now()) {
         now.setDate(now.getDate() + 1);
       }
       return now.getTime();
+    }
 
-    case 'tomorrow':
+    case 'tomorrow': {
+      const [mornHours, mornMinutes] = settings.morningTime.split(':').map(Number);
       now.setDate(now.getDate() + 1);
-      now.setHours(9, 0, 0, 0);
+      now.setHours(mornHours, mornMinutes, 0, 0);
       return now.getTime();
+    }
 
-    case 'tomorrow-eve':
+    case 'tomorrow-eve': {
+      const [eveHours, eveMinutes] = settings.eveningTime.split(':').map(Number);
       now.setDate(now.getDate() + 1);
-      now.setHours(18, 0, 0, 0);
+      now.setHours(eveHours, eveMinutes, 0, 0);
       return now.getTime();
+    }
 
-    case 'next-weekend':
+    case 'next-weekend': {
+      const [weekendHours, weekendMinutes] = settings.weekendTime.split(':').map(Number);
       // Find next Saturday
       const daysUntilSaturday = (6 - now.getDay() + 7) % 7 || 7;
       now.setDate(now.getDate() + daysUntilSaturday);
-      now.setHours(10, 0, 0, 0);
+      now.setHours(weekendHours, weekendMinutes, 0, 0);
       return now.getTime();
+    }
 
-    case 'next-week':
+    case 'next-week': {
+      const [mornHours, mornMinutes] = settings.morningTime.split(':').map(Number);
       now.setDate(now.getDate() + 7);
-      now.setHours(9, 0, 0, 0);
+      now.setHours(mornHours, mornMinutes, 0, 0);
       return now.getTime();
+    }
 
-    case 'in-a-month':
+    case 'in-a-month': {
+      const [mornHours, mornMinutes] = settings.morningTime.split(':').map(Number);
       now.setMonth(now.getMonth() + 1);
-      now.setHours(9, 0, 0, 0);
+      now.setHours(mornHours, mornMinutes, 0, 0);
       return now.getTime();
+    }
 
-    case 'someday':
-      // Someday = 3 months from now
-      now.setMonth(now.getMonth() + 3);
-      now.setHours(9, 0, 0, 0);
+    case 'someday': {
+      const [mornHours, mornMinutes] = settings.morningTime.split(':').map(Number);
+      // Calculate someday based on settings
+      switch (settings.somedayUnit) {
+        case 'days':
+          now.setDate(now.getDate() + settings.somedayValue);
+          break;
+        case 'weeks':
+          now.setDate(now.getDate() + (settings.somedayValue * 7));
+          break;
+        case 'months':
+          now.setMonth(now.getMonth() + settings.somedayValue);
+          break;
+        case 'years':
+          now.setFullYear(now.getFullYear() + settings.somedayValue);
+          break;
+      }
+      now.setHours(mornHours, mornMinutes, 0, 0);
       return now.getTime();
+    }
 
     default:
       return null;
@@ -112,8 +146,9 @@ async function formatTimingDisplay(option) {
     }
 
     case 'this-eve': {
+      const [eveHours, eveMinutes] = settings.eveningTime.split(':').map(Number);
       const todayEvening = new Date();
-      todayEvening.setHours(18, 0, 0, 0);
+      todayEvening.setHours(eveHours, eveMinutes, 0, 0);
       if (targetDate.getDate() === now.getDate()) {
         return formatTimeString(targetDate);
       } else {
@@ -137,8 +172,13 @@ async function formatTimingDisplay(option) {
     case 'in-a-month':
       return formatDateString(targetDate);
 
-    case 'someday':
-      return 'in 3 months';
+    case 'someday': {
+      const value = settings.somedayValue;
+      const unit = settings.somedayUnit;
+      // Handle singular vs plural
+      const displayUnit = value === 1 ? unit.slice(0, -1) : unit;
+      return `in ${value} ${displayUnit}`;
+    }
 
     default:
       return '';
@@ -210,6 +250,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         timingElement.textContent = timingText;
       }
     }
+  }
+
+  // Show/hide advanced option buttons based on settings
+  const settings = await getSettings();
+  const pickDateBtn = document.querySelector('[data-option="pick-date"]');
+  const repeatedlyBtn = document.querySelector('[data-option="repeatedly"]');
+
+  if (pickDateBtn && !settings.showPickDate) {
+    pickDateBtn.style.display = 'none';
+  }
+  if (repeatedlyBtn && !settings.showRepeatedly) {
+    repeatedlyBtn.style.display = 'none';
   }
 
   // Format time based on user preference
