@@ -220,6 +220,243 @@
       width: auto;
       margin: 0;
     }
+
+    /* Custom Panels Styles */
+    #custom-panels-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .custom-panel-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #1a1a2e;
+      border: 2px solid #0f3460;
+      border-radius: 6px;
+    }
+
+    .custom-panel-item .panel-icon {
+      font-size: 24px;
+      min-width: 32px;
+      text-align: center;
+    }
+
+    .custom-panel-item .panel-info {
+      flex: 1;
+    }
+
+    .custom-panel-item .panel-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .custom-panel-item .panel-details {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .custom-panel-item .panel-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .custom-panel-item button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .custom-panel-item .edit-btn {
+      background: #53a8b6;
+      color: #fff;
+    }
+
+    .custom-panel-item .edit-btn:hover {
+      background: #4a96a3;
+    }
+
+    .custom-panel-item .delete-btn {
+      background: #e74c3c;
+      color: #fff;
+    }
+
+    .custom-panel-item .delete-btn:hover {
+      background: #c0392b;
+    }
+
+    .custom-panel-item .toggle-checkbox {
+      width: auto;
+      margin: 0;
+    }
+
+    .add-panel-btn {
+      background: #53a8b6;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .add-panel-btn:hover {
+      background: #4a96a3;
+    }
+
+    /* Custom Panel Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: #16213e;
+      border: 2px solid #0f3460;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-content h3 {
+      margin-top: 0;
+      color: #53a8b6;
+    }
+
+    .modal-content .form-group {
+      margin-bottom: 16px;
+    }
+
+    .modal-content .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .modal-content input[type="text"],
+    .modal-content input[type="number"],
+    .modal-content input[type="time"],
+    .modal-content select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #0f3460;
+      border-radius: 6px;
+      background: #1a1a2e;
+      color: #eee;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    .modal-content input:focus,
+    .modal-content select:focus {
+      outline: none;
+      border-color: #53a8b6;
+    }
+
+    .emoji-picker-container {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: #1a1a2e;
+      border: 2px solid #0f3460;
+      border-radius: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .emoji-option {
+      font-size: 24px;
+      padding: 8px;
+      text-align: center;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+
+    .emoji-option:hover {
+      background: #0f3460;
+    }
+
+    .emoji-option.selected {
+      background: #53a8b6;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .modal-actions button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .modal-actions .confirm-btn {
+      background: #53a8b6;
+      color: #fff;
+    }
+
+    .modal-actions .confirm-btn:hover {
+      background: #4a96a3;
+    }
+
+    .modal-actions .cancel-btn {
+      background: #555;
+      color: #fff;
+    }
+
+    .modal-actions .cancel-btn:hover {
+      background: #666;
+    }
+
+    .conditional-input {
+      display: none;
+      margin-top: 12px;
+      padding: 12px;
+      background: #1a1a2e;
+      border: 2px solid #0f3460;
+      border-radius: 6px;
+    }
+
+    .conditional-input.visible {
+      display: block;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #888;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -357,6 +594,105 @@
 
     <div id="button-grid-customizer">
       <!-- Button items will be populated by JavaScript -->
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <h2>Custom Snooze Panels</h2>
+    <div class="description" style="margin-bottom: 16px;">
+      Create fully custom snooze buttons with your own name, icon, and time calculation. Custom panels appear after preset buttons in the grid.
+    </div>
+
+    <div id="custom-panels-list">
+      <!-- Custom panels will be populated by JavaScript -->
+    </div>
+
+    <button id="add-custom-panel-btn" class="add-panel-btn">+ Add Custom Panel</button>
+  </div>
+
+  <!-- Custom Panel Modal -->
+  <div id="custom-panel-modal" class="modal">
+    <div class="modal-content">
+      <h3 id="modal-title">Add Custom Panel</h3>
+
+      <div class="form-group">
+        <label for="panel-name">Panel Name</label>
+        <input type="text" id="panel-name" placeholder="e.g., Coffee Break" maxlength="20">
+        <div class="description">Maximum 20 characters</div>
+      </div>
+
+      <div class="form-group">
+        <label>Icon (Emoji)</label>
+        <div class="emoji-picker-container" id="emoji-picker">
+          <!-- Emojis will be populated by JavaScript -->
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="calculation-type">Time Calculation</label>
+        <select id="calculation-type">
+          <option value="relative">Relative (X hours from now)</option>
+          <option value="relative-time">Relative with Time (X days from now at specific time)</option>
+          <option value="next-weekday">Next Weekday (Next occurrence of a weekday)</option>
+          <option value="absolute">Absolute Time (Specific time today/tomorrow)</option>
+        </select>
+      </div>
+
+      <!-- Relative Options -->
+      <div id="relative-options" class="conditional-input">
+        <div class="form-group">
+          <label for="relative-hours">Hours from now</label>
+          <input type="number" id="relative-hours" min="0.25" max="24" step="0.25" value="1">
+          <div class="description">Minimum 0.25 (15 minutes), Maximum 24 hours</div>
+        </div>
+      </div>
+
+      <!-- Relative with Time Options -->
+      <div id="relative-time-options" class="conditional-input">
+        <div class="form-group">
+          <label for="relative-days">Days from now</label>
+          <input type="number" id="relative-days" min="1" max="365" value="1">
+          <div class="description">Minimum 1, Maximum 365</div>
+        </div>
+        <div class="form-group">
+          <label for="relative-time-value">Time</label>
+          <input type="time" id="relative-time-value" value="09:00">
+        </div>
+      </div>
+
+      <!-- Next Weekday Options -->
+      <div id="next-weekday-options" class="conditional-input">
+        <div class="form-group">
+          <label for="weekday-select">Day of Week</label>
+          <select id="weekday-select">
+            <option value="1">Monday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="5">Friday</option>
+            <option value="6">Saturday</option>
+            <option value="0">Sunday</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="weekday-time">Time</label>
+          <input type="time" id="weekday-time" value="09:00">
+        </div>
+      </div>
+
+      <!-- Absolute Time Options -->
+      <div id="absolute-options" class="conditional-input">
+        <div class="form-group">
+          <label for="absolute-time">Time</label>
+          <input type="time" id="absolute-time" value="17:00">
+          <div class="description">Opens today if time hasn't passed, otherwise tomorrow</div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="cancel-panel-btn" class="cancel-btn">Cancel</button>
+        <button id="save-panel-btn" class="confirm-btn">Save Panel</button>
+      </div>
     </div>
   </div>
 

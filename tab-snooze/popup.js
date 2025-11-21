@@ -31,7 +31,9 @@ async function getSettings() {
       'next-week',
       'in-a-month',
       'someday'
-    ]
+    ],
+    // Phase 3: Custom panels
+    customPanels: []
   };
 
   const result = await browser.storage.sync.get(defaults);
@@ -206,6 +208,131 @@ async function formatTimingDisplay(option) {
   }
 }
 
+// Calculate time for custom panel
+function calculateCustomPanelTime(panel) {
+  const now = new Date();
+
+  switch (panel.type) {
+    case 'relative':
+      // X hours from now
+      now.setHours(now.getHours() + panel.value);
+      return now.getTime();
+
+    case 'relative-time': {
+      // X days from now at specific time
+      const [hours, minutes] = panel.time.split(':').map(Number);
+      now.setDate(now.getDate() + panel.value);
+      now.setHours(hours, minutes, 0, 0);
+      return now.getTime();
+    }
+
+    case 'next-weekday': {
+      // Next occurrence of a weekday
+      const [hours, minutes] = panel.time.split(':').map(Number);
+      const targetDay = panel.weekday;
+      const currentDay = now.getDay();
+
+      // Calculate days until target day
+      let daysUntil = targetDay - currentDay;
+      if (daysUntil <= 0) {
+        daysUntil += 7;
+      }
+
+      now.setDate(now.getDate() + daysUntil);
+      now.setHours(hours, minutes, 0, 0);
+      return now.getTime();
+    }
+
+    case 'absolute': {
+      // Specific time today or tomorrow
+      const [hours, minutes] = panel.time.split(':').map(Number);
+      now.setHours(hours, minutes, 0, 0);
+
+      // If time has passed today, move to tomorrow
+      if (now.getTime() <= Date.now()) {
+        now.setDate(now.getDate() + 1);
+      }
+
+      return now.getTime();
+    }
+
+    default:
+      return null;
+  }
+}
+
+// Format timing display for custom panel
+async function formatCustomPanelTiming(panel) {
+  const snoozeTime = calculateCustomPanelTime(panel);
+  if (!snoozeTime) return '';
+
+  const targetDate = new Date(snoozeTime);
+  const now = new Date();
+  const settings = await getSettings();
+
+  // Helper to format time
+  const formatTimeString = (date) => {
+    const hours24 = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    if (settings.timeFormat === '12') {
+      const hours12 = hours24 % 12 || 12;
+      const period = hours24 < 12 ? 'AM' : 'PM';
+      return `${hours12}:${minutes} ${period}`;
+    } else {
+      const hours = String(hours24).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+  };
+
+  // Helper to get day name
+  const getDayName = (date) => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return days[date.getDay()];
+  };
+
+  // Helper to format date
+  const formatDateString = (date) => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[date.getMonth()]} ${date.getDate()}`;
+  };
+
+  switch (panel.type) {
+    case 'relative': {
+      const hours = panel.value;
+      if (hours < 1) {
+        const minutes = Math.round(hours * 60);
+        return `in ${minutes} min`;
+      } else if (hours === 1) {
+        return 'in 1 hour';
+      } else {
+        return `in ${hours} hours`;
+      }
+    }
+
+    case 'relative-time': {
+      if (panel.value === 1) {
+        return formatTimeString(targetDate);
+      } else {
+        return `${getDayName(targetDate)}, ${formatDateString(targetDate)}`;
+      }
+    }
+
+    case 'next-weekday':
+      return `${getDayName(targetDate)}, ${formatDateString(targetDate)}`;
+
+    case 'absolute':
+      if (targetDate.getDate() === now.getDate()) {
+        return formatTimeString(targetDate);
+      } else {
+        return `tomorrow ${formatTimeString(targetDate)}`;
+      }
+
+    default:
+      return '';
+  }
+}
+
 // Snooze the current tab
 async function snoozeTab(option, customTime = null) {
   try {
@@ -295,6 +422,27 @@ document.addEventListener('DOMContentLoaded', async () => {
           timingElement.textContent = timingText;
         }
       }
+    }
+  }
+
+  // Phase 3: Add custom panels
+  const customPanels = settings.customPanels || [];
+  for (const panel of customPanels) {
+    if (panel.enabled) {
+      const button = document.createElement('button');
+      button.className = 'snooze-btn';
+      button.dataset.option = panel.id;
+      button.dataset.customPanel = 'true';
+
+      const timingText = await formatCustomPanelTiming(panel);
+
+      button.innerHTML = `
+        <div class="icon">${panel.icon}</div>
+        <div class="label">${panel.name}</div>
+        <div class="timing">${timingText}</div>
+      `;
+
+      grid.appendChild(button);
     }
   }
 
@@ -527,15 +675,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   const snoozeButtons = document.querySelectorAll('.snooze-btn[data-option]');
   console.log('Found snooze buttons:', snoozeButtons.length);
   snoozeButtons.forEach(button => {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', async () => {
       const option = button.dataset.option;
-      console.log('Snooze button clicked, option:', option);
+      const isCustomPanel = button.dataset.customPanel === 'true';
+      console.log('Snooze button clicked, option:', option, 'isCustomPanel:', isCustomPanel);
 
       if (option === 'pick-date') {
         console.log('Pick date option selected, calling showDatePicker');
         showDatePicker();
       } else if (option === 'repeatedly') {
         showRecurringModal();
+      } else if (isCustomPanel) {
+        // Handle custom panel
+        const settings = await getSettings();
+        const panel = settings.customPanels.find(p => p.id === option);
+        if (panel) {
+          const snoozeTime = calculateCustomPanelTime(panel);
+          snoozeTab('custom', snoozeTime);
+        }
       } else {
         snoozeTab(option);
       }
