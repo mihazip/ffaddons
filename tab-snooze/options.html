@@ -164,6 +164,62 @@
       color: #fff;
       display: block;
     }
+
+    /* Button Grid Customizer Styles */
+    #button-grid-customizer {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .button-grid-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #1a1a2e;
+      border: 2px solid #0f3460;
+      border-radius: 6px;
+      cursor: grab;
+      transition: all 0.2s;
+    }
+
+    .button-grid-item:hover {
+      background: #0f3460;
+      border-color: #53a8b6;
+    }
+
+    .button-grid-item.dragging {
+      opacity: 0.5;
+      cursor: grabbing;
+    }
+
+    .button-grid-item.drag-over {
+      border-color: #53a8b6;
+      border-style: dashed;
+      transform: translateY(-2px);
+    }
+
+    .button-grid-item .drag-handle {
+      font-size: 18px;
+      cursor: grab;
+      color: #888;
+      user-select: none;
+    }
+
+    .button-grid-item .button-icon {
+      font-size: 20px;
+    }
+
+    .button-grid-item .button-label {
+      flex: 1;
+      font-weight: 500;
+    }
+
+    .button-grid-item input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
   </style>
 </head>
 <body>
@@ -290,6 +346,17 @@
         Show "Repeatedly" button
       </label>
       <div class="description">Toggle the recurring snooze button in the popup</div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <h2>Button Grid Customization</h2>
+    <div class="description" style="margin-bottom: 16px;">
+      Show/hide and reorder preset snooze buttons. Drag buttons to reorder them. Settings and View Snoozed buttons are always visible.
+    </div>
+
+    <div id="button-grid-customizer">
+      <!-- Button items will be populated by JavaScript -->
     </div>
   </div>
 

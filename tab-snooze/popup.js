@@ -10,7 +10,28 @@ async function getSettings() {
     showPickDate: true,
     showRepeatedly: true,
     dateFormat: 'DD-MM-YYYY',
-    timeFormat: '24'
+    timeFormat: '24',
+    // Phase 2: Button grid customization
+    panelVisibility: {
+      'later-today': true,
+      'this-eve': true,
+      'tomorrow': true,
+      'tomorrow-eve': true,
+      'next-weekend': true,
+      'next-week': true,
+      'in-a-month': true,
+      'someday': true
+    },
+    panelOrder: [
+      'later-today',
+      'tomorrow',
+      'tomorrow-eve',
+      'this-eve',
+      'next-weekend',
+      'next-week',
+      'in-a-month',
+      'someday'
+    ]
   };
 
   const result = await browser.storage.sync.get(defaults);
@@ -239,29 +260,58 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('Modal elements:', { modal, confirmBtn, cancelBtn });
 
-  // Update timing displays for all snooze buttons
-  const snoozeOptions = ['later-today', 'this-eve', 'tomorrow', 'tomorrow-eve', 'next-weekend', 'next-week', 'in-a-month', 'someday'];
-  for (const option of snoozeOptions) {
-    const button = document.querySelector(`[data-option="${option}"]`);
-    if (button) {
-      const timingElement = button.querySelector('.timing');
-      if (timingElement) {
-        const timingText = await formatTimingDisplay(option);
-        timingElement.textContent = timingText;
+  // Get settings (including panelVisibility and panelOrder)
+  const settings = await getSettings();
+
+  // Phase 2: Reorder buttons in the grid based on settings
+  const grid = document.querySelector('.snooze-grid');
+  const allButtons = Array.from(grid.querySelectorAll('.snooze-btn[data-option]'));
+
+  // Separate preset buttons from special buttons (pick-date, repeatedly, settings, view-snoozed)
+  const presetButtons = allButtons.filter(btn => {
+    const option = btn.dataset.option;
+    return settings.panelOrder.includes(option);
+  });
+
+  const pickDateBtn = grid.querySelector('[data-option="pick-date"]');
+  const repeatedlyBtn = grid.querySelector('[data-option="repeatedly"]');
+  const settingsBtn = grid.querySelector('#settings-btn');
+  const viewSnoozedBtn = grid.querySelector('#view-snoozed-btn');
+
+  // Clear the grid
+  grid.innerHTML = '';
+
+  // Add preset buttons in the order specified by panelOrder, filtering by visibility
+  for (const optionId of settings.panelOrder) {
+    if (settings.panelVisibility[optionId]) {
+      const button = presetButtons.find(btn => btn.dataset.option === optionId);
+      if (button) {
+        grid.appendChild(button);
+
+        // Update timing display for visible buttons
+        const timingElement = button.querySelector('.timing');
+        if (timingElement) {
+          const timingText = await formatTimingDisplay(optionId);
+          timingElement.textContent = timingText;
+        }
       }
     }
   }
 
-  // Show/hide advanced option buttons based on settings
-  const settings = await getSettings();
-  const pickDateBtn = document.querySelector('[data-option="pick-date"]');
-  const repeatedlyBtn = document.querySelector('[data-option="repeatedly"]');
-
-  if (pickDateBtn && !settings.showPickDate) {
-    pickDateBtn.style.display = 'none';
+  // Add advanced option buttons if enabled
+  if (pickDateBtn && settings.showPickDate) {
+    grid.appendChild(pickDateBtn);
   }
-  if (repeatedlyBtn && !settings.showRepeatedly) {
-    repeatedlyBtn.style.display = 'none';
+  if (repeatedlyBtn && settings.showRepeatedly) {
+    grid.appendChild(repeatedlyBtn);
+  }
+
+  // Always add Settings and View Snoozed buttons at the end
+  if (settingsBtn) {
+    grid.appendChild(settingsBtn);
+  }
+  if (viewSnoozedBtn) {
+    grid.appendChild(viewSnoozedBtn);
   }
 
   // Format time based on user preference
