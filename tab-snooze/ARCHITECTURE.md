@@ -355,16 +355,16 @@ if (visibleCount === 0) {
 - Existing installations will see no change until they customize
 - All 8 preset buttons are visible by default
 
-## Future Phases
+## Phase 3 Implementation (Completed)
 
-### Phase 3: Custom Snooze Panels (Planned)
+### Phase 3: Custom Snooze Panels
 
 **Goals**:
-- Allow users to create fully custom snooze buttons
-- Support custom name, icon (emoji), and time calculation
-- No recurring support for custom panels (use Repeatedly button)
+- Allow users to create fully custom snooze buttons ✅
+- Support custom name, icon (emoji), and time calculation ✅
+- No recurring support for custom panels (use Repeatedly button) ✅
 
-**Proposed Time Calculation Types**:
+**Implemented Time Calculation Types**:
 1. **Relative**: X hours from now (e.g., "Coffee Break" = 15 minutes)
 2. **Relative with Time**: X days from now at specific time (e.g., "Tomorrow Morning" = 1 day at 09:00)
 3. **Next Weekday**: Next occurrence of a weekday (e.g., "Next Monday" at 09:00)
@@ -386,12 +386,130 @@ customPanels: [
 ]
 ```
 
-**UI Considerations**:
-- Settings page: Form to add/edit/delete custom panels
-- Emoji picker for icon selection
-- Dropdown for time calculation type
-- Conditional inputs based on selected type
-- Live preview of calculated time
+### Changes Made
+
+#### 1. Settings Structure (`options.js` + `popup.js`)
+Added `customPanels` array to `defaultSettings`:
+
+```javascript
+customPanels: []  // Array of custom panel objects
+```
+
+Each custom panel object contains:
+- `id`: Unique identifier (`custom-${timestamp}`)
+- `name`: Panel display name (max 20 characters)
+- `icon`: Emoji character
+- `type`: Calculation type (relative/relative-time/next-weekday/absolute)
+- `value`: Numeric value for relative calculations
+- `time`: Time string for time-based calculations
+- `weekday`: Day of week (0-6) for next-weekday type
+- `enabled`: Boolean to show/hide panel
+
+#### 2. Settings Page UI (`options.html`)
+Added a new "Custom Snooze Panels" section with:
+
+- **Panels List**: Shows all created custom panels with icons and descriptions
+- **Add/Edit/Delete Controls**: Buttons for managing panels
+- **Enable/Disable Toggle**: Checkboxes to show/hide individual panels
+- **Modal Dialog**: Full-featured form for creating/editing panels
+
+**Modal Features**:
+- Panel name input (max 20 characters)
+- Emoji picker grid (72 emojis organized by category)
+- Calculation type dropdown
+- Conditional inputs that show/hide based on selected type:
+  - **Relative**: Hours input (0.25-24 hours)
+  - **Relative with Time**: Days input + time picker
+  - **Next Weekday**: Weekday dropdown + time picker
+  - **Absolute**: Time picker
+
+#### 3. Settings Page Logic (`options.js`)
+Implemented comprehensive custom panel management:
+
+**Key Functions**:
+- `initCustomPanels()` - Loads and initializes panels on page load
+- `renderCustomPanelsList()` - Displays panels with icons and details
+- `getCalculationDetailsText()` - Generates human-readable descriptions
+- `renderEmojiPicker()` - Creates 8x9 grid of 72 emojis
+- `showCustomPanelModal()` - Opens modal for add/edit
+- `updateCalculationInputs()` - Shows/hides type-specific inputs
+- `saveCustomPanel()` - Validates and saves panel to storage
+- `editCustomPanel()` - Loads panel data for editing
+- `deleteCustomPanel()` - Removes panel with confirmation
+
+**Validation**:
+- Panel name required and max 20 characters
+- Icon selection required
+- Type-specific validation (hours 0.25-24, days 1-365, etc.)
+
+#### 4. Popup Rendering (`popup.js`)
+Modified popup grid rendering to include custom panels:
+
+**Rendering Order**:
+1. Preset buttons (filtered and ordered by Phase 2 settings)
+2. **Custom panels** (filtered by `enabled` flag)
+3. Advanced options (Pick a Date, Repeatedly)
+4. Always-visible buttons (Settings, View Snoozed)
+
+**Button Creation**:
+```javascript
+const button = document.createElement('button');
+button.className = 'snooze-btn';
+button.dataset.option = panel.id;
+button.dataset.customPanel = 'true';
+button.innerHTML = `
+  <div class="icon">${panel.icon}</div>
+  <div class="label">${panel.name}</div>
+  <div class="timing">${timingText}</div>
+`;
+```
+
+#### 5. Time Calculation (`popup.js`)
+Added two new functions for custom panel time handling:
+
+**`calculateCustomPanelTime(panel)`**:
+- **Relative**: Adds hours to current time
+- **Relative with Time**: Adds days and sets specific time
+- **Next Weekday**: Finds next occurrence of weekday at time
+- **Absolute**: Sets time today or tomorrow if passed
+
+**`formatCustomPanelTiming(panel)`**:
+- Respects user's 12/24-hour format preference
+- Shows "in X min/hours" for relative
+- Shows day name and date for future dates
+- Shows "tomorrow" prefix for next-day absolute times
+
+#### 6. Click Handler Updates (`popup.js`)
+Updated snooze button click handler to detect and handle custom panels:
+
+```javascript
+if (isCustomPanel) {
+  const panel = settings.customPanels.find(p => p.id === option);
+  if (panel) {
+    const snoozeTime = calculateCustomPanelTime(panel);
+    snoozeTab('custom', snoozeTime);
+  }
+}
+```
+
+### User Experience
+1. **Settings Page**: Users can add unlimited custom panels with unique names and emojis
+2. **Visual Feedback**: Each panel shows icon, name, and calculation description
+3. **Easy Management**: Edit/Delete buttons, plus enable/disable toggles
+4. **Popup**: Custom panels appear after preset buttons with calculated timing
+5. **Type Safety**: Conditional inputs prevent invalid configurations
+
+### Backward Compatibility
+- Default `customPanels` is an empty array
+- Existing installations see no changes until they add custom panels
+- Custom panels are optional and don't affect preset functionality
+
+### UI Considerations (Implemented)**:
+- Settings page: Form to add/edit/delete custom panels ✅
+- Emoji picker for icon selection ✅
+- Dropdown for time calculation type ✅
+- Conditional inputs based on selected type ✅
+- Calculated time display in timing element ✅
 
 ### Phase 4: Improved Time Pickers (Planned)
 
@@ -524,12 +642,13 @@ customPanels: [
 - **v1.0.0**: Initial release with hardcoded times
 - **v1.1.0**: Added recurring snoozes
 - **v1.2.0**: Phase 1 - Custom time settings
-- **v1.3.0**: Phase 2 - Grid customization (current)
-- **v1.4.0** (planned): Phase 3 - Custom panels
+- **v1.3.0**: Phase 2 - Grid customization
+- **v1.4.0**: Phase 3 - Custom panels (current)
 - **v1.5.0** (planned): Phase 4 - Improved time pickers
 
 ---
 
 **Last Updated**: 2025-11-21
 **Author**: Claude Code (Anthropic)
-**Next Phase**: Phase 3 - Custom Snooze Panels
+**Current Phase**: Phase 3 Complete - Custom Snooze Panels
+**Next Phase**: Phase 4 - Improved Time Pickers
