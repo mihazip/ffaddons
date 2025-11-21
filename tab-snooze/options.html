@@ -66,6 +66,59 @@
       border-color: #53a8b6;
     }
 
+    input[type="checkbox"] {
+      width: auto;
+      margin-right: 8px;
+      cursor: pointer;
+    }
+
+    .radio-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 10px;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .radio-option input[type="radio"] {
+      cursor: pointer;
+    }
+
+    .radio-option label {
+      margin: 0;
+      cursor: pointer;
+      font-weight: normal;
+    }
+
+    .custom-time-input {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .custom-time-input.visible {
+      display: block;
+    }
+
+    .inline-inputs {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .inline-inputs input,
+    .inline-inputs select {
+      flex: 1;
+    }
+
+    .inline-inputs input[type="number"] {
+      max-width: 100px;
+    }
+
     .description {
       font-size: 13px;
       color: #999;
@@ -128,15 +181,115 @@
     </div>
 
     <div class="setting-item">
-      <label for="evening-time">Evening Time</label>
-      <input type="time" id="evening-time" value="18:00">
+      <label>Evening Time</label>
+      <div class="radio-group">
+        <div class="radio-option">
+          <input type="radio" id="evening-17" name="evening-time" value="17:00">
+          <label for="evening-17">17:00</label>
+        </div>
+        <div class="radio-option">
+          <input type="radio" id="evening-18" name="evening-time" value="18:00" checked>
+          <label for="evening-18">18:00</label>
+        </div>
+        <div class="radio-option">
+          <input type="radio" id="evening-19" name="evening-time" value="19:00">
+          <label for="evening-19">19:00</label>
+        </div>
+        <div class="radio-option">
+          <input type="radio" id="evening-custom" name="evening-time" value="custom">
+          <label for="evening-custom">Custom:</label>
+        </div>
+      </div>
+      <div id="evening-custom-input" class="custom-time-input">
+        <input type="time" id="evening-custom-time" value="18:00">
+      </div>
       <div class="description">What time should "Evening" snoozes open?</div>
     </div>
 
     <div class="setting-item">
-      <label for="morning-time">Morning Time</label>
-      <input type="time" id="morning-time" value="09:00">
+      <label>Morning Time</label>
+      <div class="radio-group">
+        <div class="radio-option">
+          <input type="radio" id="morning-08" name="morning-time" value="08:00">
+          <label for="morning-08">08:00</label>
+        </div>
+        <div class="radio-option">
+          <input type="radio" id="morning-09" name="morning-time" value="09:00" checked>
+          <label for="morning-09">09:00</label>
+        </div>
+        <div class="radio-option">
+          <input type="radio" id="morning-10" name="morning-time" value="10:00">
+          <label for="morning-10">10:00</label>
+        </div>
+        <div class="radio-option">
+          <input type="radio" id="morning-custom" name="morning-time" value="custom">
+          <label for="morning-custom">Custom:</label>
+        </div>
+      </div>
+      <div id="morning-custom-input" class="custom-time-input">
+        <input type="time" id="morning-custom-time" value="09:00">
+      </div>
       <div class="description">What time should "Tomorrow" and other morning snoozes open?</div>
+    </div>
+
+    <div class="setting-item">
+      <label>Weekend Time</label>
+      <div class="radio-group">
+        <div class="radio-option">
+          <input type="radio" id="weekend-09" name="weekend-time" value="09:00">
+          <label for="weekend-09">09:00</label>
+        </div>
+        <div class="radio-option">
+          <input type="radio" id="weekend-10" name="weekend-time" value="10:00" checked>
+          <label for="weekend-10">10:00</label>
+        </div>
+        <div class="radio-option">
+          <input type="radio" id="weekend-11" name="weekend-time" value="11:00">
+          <label for="weekend-11">11:00</label>
+        </div>
+        <div class="radio-option">
+          <input type="radio" id="weekend-custom" name="weekend-time" value="custom">
+          <label for="weekend-custom">Custom:</label>
+        </div>
+      </div>
+      <div id="weekend-custom-input" class="custom-time-input">
+        <input type="time" id="weekend-custom-time" value="10:00">
+      </div>
+      <div class="description">What time should "Next Weekend" snoozes open?</div>
+    </div>
+
+    <div class="setting-item">
+      <label for="someday-value">Someday Duration</label>
+      <div class="inline-inputs">
+        <input type="number" id="someday-value" min="1" max="999" value="3">
+        <select id="someday-unit">
+          <option value="days">Days</option>
+          <option value="weeks">Weeks</option>
+          <option value="months" selected>Months</option>
+          <option value="years">Years</option>
+        </select>
+      </div>
+      <div class="description">How far in the future should "Someday" be?</div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <h2>Advanced Options</h2>
+
+    <div class="setting-item">
+      <label>
+        <input type="checkbox" id="show-pick-date" checked>
+        Show "Pick a Date" button
+      </label>
+      <div class="description">Toggle the custom date picker button in the popup</div>
+    </div>
+
+    <div class="setting-item">
+      <label>
+        <input type="checkbox" id="show-repeatedly" checked>
+        Show "Repeatedly" button
+      </label>
+      <div class="description">Toggle the recurring snooze button in the popup</div>
     </div>
   </div>
 
