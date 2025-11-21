@@ -189,25 +189,173 @@ switch (settings.somedayUnit) {
 - Existing users will see no change until they customize settings
 - New settings are optional and have sensible defaults
 
+## Phase 2 Implementation (Completed)
+
+### Goals
+- Allow users to show/hide individual preset buttons ✅
+- Enable reordering of snooze option buttons ✅
+- Maintain Settings and View Snoozed as always-visible navigation ✅
+
+### Changes Made
+
+#### 1. Settings Structure (`options.js` + `popup.js`)
+Added two new settings to `defaultSettings`:
+
+```javascript
+panelVisibility: {
+  'later-today': true,
+  'this-eve': true,
+  'tomorrow': true,
+  'tomorrow-eve': true,
+  'next-weekend': true,
+  'next-week': true,
+  'in-a-month': true,
+  'someday': true
+},
+panelOrder: [
+  'later-today',
+  'tomorrow',
+  'tomorrow-eve',
+  'this-eve',
+  'next-weekend',
+  'next-week',
+  'in-a-month',
+  'someday'
+]
+```
+
+- **`panelVisibility`**: Object mapping button IDs to boolean values (show/hide)
+- **`panelOrder`**: Array of button IDs defining the display order in the grid
+
+#### 2. Popup Rendering (`popup.js`)
+Modified the popup initialization to dynamically render buttons:
+
+- Load `panelVisibility` and `panelOrder` from settings
+- Clear the grid and rebuild it based on settings
+- Filter buttons by visibility (only show checked buttons)
+- Sort buttons according to `panelOrder`
+- Append advanced options (Pick a Date, Repeatedly) if enabled
+- Always append Settings and View Snoozed buttons at the end
+
+**Key Code** (`popup.js:266-315`):
+```javascript
+// Phase 2: Reorder buttons in the grid based on settings
+const grid = document.querySelector('.snooze-grid');
+const allButtons = Array.from(grid.querySelectorAll('.snooze-btn[data-option]'));
+
+// Separate preset buttons from special buttons
+const presetButtons = allButtons.filter(btn => {
+  const option = btn.dataset.option;
+  return settings.panelOrder.includes(option);
+});
+
+// Clear the grid
+grid.innerHTML = '';
+
+// Add preset buttons in order, filtering by visibility
+for (const optionId of settings.panelOrder) {
+  if (settings.panelVisibility[optionId]) {
+    const button = presetButtons.find(btn => btn.dataset.option === optionId);
+    if (button) {
+      grid.appendChild(button);
+      // Update timing display
+    }
+  }
+}
+
+// Add advanced options + always-visible buttons
+```
+
+#### 3. Settings Page UI (`options.html`)
+Added a new "Button Grid Customization" section with:
+
+- Visual list of all preset buttons
+- Drag handles (☰) for reordering
+- Checkboxes for show/hide
+- Button icons and labels for easy identification
+
+**HTML Structure**:
+```html
+<div class="setting-group">
+  <h2>Button Grid Customization</h2>
+  <div class="description">
+    Show/hide and reorder preset snooze buttons. Drag buttons to reorder them.
+    Settings and View Snoozed buttons are always visible.
+  </div>
+  <div id="button-grid-customizer">
+    <!-- Populated by JavaScript -->
+  </div>
+</div>
+```
+
+#### 4. Drag-and-Drop Implementation (`options.js`)
+Implemented full drag-and-drop functionality:
+
+- **Button Metadata**: Added `buttonMetadata` object with icons and labels
+- **Render Function**: `renderButtonGrid()` creates draggable items
+- **Drag Handlers**:
+  - `handleDragStart` - Sets dragged item
+  - `handleDragOver` - Allows drop
+  - `handleDragEnter/Leave` - Visual feedback
+  - `handleDrop` - Reorders items in DOM
+  - `handleDragEnd` - Cleanup
+- **Save/Load**:
+  - `getCurrentPanelOrder()` - Reads order from DOM
+  - `getCurrentPanelVisibility()` - Reads checkboxes from DOM
+
+**Key Functions** (`options.js:192-313`):
+```javascript
+function renderButtonGrid(panelOrder, panelVisibility) {
+  // Create draggable items for each button
+  // Add drag event listeners
+  // Render with current state
+}
+
+function handleDrop(e) {
+  // Reorder DOM elements based on drop position
+}
+
+function getCurrentPanelOrder() {
+  // Extract button order from DOM
+}
+
+function getCurrentPanelVisibility() {
+  // Extract visibility from checkboxes
+}
+```
+
+#### 5. CSS Styling (`options.html`)
+Added styles for the grid customizer:
+
+- `.button-grid-item` - Individual button row with flex layout
+- `.dragging` - Visual feedback during drag
+- `.drag-over` - Visual feedback for drop target
+- `.drag-handle` - Grab cursor for drag handle
+- Hover effects and transitions
+
+### Validation
+Added validation to ensure at least one button is visible:
+
+```javascript
+const visibleCount = Object.values(settings.panelVisibility).filter(v => v).length;
+if (visibleCount === 0) {
+  showStatus('At least one snooze button must be visible', 'error');
+  return;
+}
+```
+
+### User Experience
+1. **Settings Page**: Users can drag buttons to reorder them, and check/uncheck to show/hide
+2. **Popup**: Buttons appear in the custom order with only visible buttons shown
+3. **Always Visible**: Settings and View Snoozed buttons remain at the end regardless of customization
+4. **Advanced Options**: Pick a Date and Repeatedly buttons (from Phase 1) are separate from grid customization
+
+### Backward Compatibility
+- Default settings show all buttons in original order
+- Existing installations will see no change until they customize
+- All 8 preset buttons are visible by default
+
 ## Future Phases
-
-### Phase 2: Grid Customization (Planned)
-
-**Goals**:
-- Allow users to show/hide individual preset buttons
-- Enable reordering of snooze option buttons
-- Maintain Settings and View Snoozed as always-visible navigation
-
-**Proposed Approach**:
-- Add `panelVisibility` setting: object mapping option IDs to boolean
-- Add `panelOrder` setting: array of option IDs defining display order
-- Update popup rendering to filter and sort buttons based on settings
-- Create visual grid editor in settings page (checkboxes or drag-and-drop)
-
-**Technical Considerations**:
-- Grid must remain responsive (CSS Grid with dynamic columns)
-- Settings/View Snoozed should stay outside customizable grid
-- Pick a Date/Repeatedly handled separately (already toggleable in Phase 1)
 
 ### Phase 3: Custom Snooze Panels (Planned)
 
@@ -375,8 +523,8 @@ customPanels: [
 
 - **v1.0.0**: Initial release with hardcoded times
 - **v1.1.0**: Added recurring snoozes
-- **v1.2.0**: Phase 1 - Custom time settings (current)
-- **v1.3.0** (planned): Phase 2 - Grid customization
+- **v1.2.0**: Phase 1 - Custom time settings
+- **v1.3.0**: Phase 2 - Grid customization (current)
 - **v1.4.0** (planned): Phase 3 - Custom panels
 - **v1.5.0** (planned): Phase 4 - Improved time pickers
 
@@ -384,4 +532,4 @@ customPanels: [
 
 **Last Updated**: 2025-11-21
 **Author**: Claude Code (Anthropic)
-**Next Phase**: Phase 2 - Grid Customization
+**Next Phase**: Phase 3 - Custom Snooze Panels

@@ -11,7 +11,40 @@ const defaultSettings = {
   dateFormat: 'DD-MM-YYYY',
   timeFormat: '24',
   showSnoozeNotification: true,
-  unsnoozeNotificationMode: 'individual' // 'individual', 'bundled', or 'off'
+  unsnoozeNotificationMode: 'individual', // 'individual', 'bundled', or 'off'
+  // Phase 2: Button grid customization
+  panelVisibility: {
+    'later-today': true,
+    'this-eve': true,
+    'tomorrow': true,
+    'tomorrow-eve': true,
+    'next-weekend': true,
+    'next-week': true,
+    'in-a-month': true,
+    'someday': true
+  },
+  panelOrder: [
+    'later-today',
+    'tomorrow',
+    'tomorrow-eve',
+    'this-eve',
+    'next-weekend',
+    'next-week',
+    'in-a-month',
+    'someday'
+  ]
+};
+
+// Button metadata (icons and labels)
+const buttonMetadata = {
+  'later-today': { icon: '☀️', label: 'Later Today' },
+  'this-eve': { icon: '🌃', label: 'This Evening' },
+  'tomorrow': { icon: '🌅', label: 'Tomorrow' },
+  'tomorrow-eve': { icon: '🌆', label: 'Tomorrow Eve' },
+  'next-weekend': { icon: '🎉', label: 'Next Weekend' },
+  'next-week': { icon: '📅', label: 'Next Week' },
+  'in-a-month': { icon: '📆', label: 'In a Month' },
+  'someday': { icon: '🔮', label: 'Someday' }
 };
 
 // Load settings when page opens
@@ -25,6 +58,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupRadioHandlers('evening-time', 'evening-custom-input');
   setupRadioHandlers('morning-time', 'morning-custom-input');
   setupRadioHandlers('weekend-time', 'weekend-custom-input');
+
+  // Initialize button grid customizer
+  initButtonGridCustomizer();
 });
 
 // Load settings from storage
@@ -68,7 +104,10 @@ async function saveSettings() {
       dateFormat: document.getElementById('date-format').value,
       timeFormat: document.getElementById('time-format').value,
       showSnoozeNotification: document.getElementById('show-snooze-notification').checked,
-      unsnoozeNotificationMode: document.getElementById('unsnooze-notification-mode').value
+      unsnoozeNotificationMode: document.getElementById('unsnooze-notification-mode').value,
+      // Phase 2: Button grid customization
+      panelVisibility: getCurrentPanelVisibility(),
+      panelOrder: getCurrentPanelOrder()
     };
 
     // Validate
@@ -79,6 +118,13 @@ async function saveSettings() {
 
     if (settings.somedayValue < 1 || settings.somedayValue > 999) {
       showStatus('Someday value must be between 1 and 999', 'error');
+      return;
+    }
+
+    // Validate that at least one button is visible
+    const visibleCount = Object.values(settings.panelVisibility).filter(v => v).length;
+    if (visibleCount === 0) {
+      showStatus('At least one snooze button must be visible', 'error');
       return;
     }
 
@@ -151,4 +197,127 @@ function setRadioValue(radioGroupName, timeValue, customTimeId, customInputId) {
       customInput.classList.add('visible');
     }
   }
+}
+
+// ===== Button Grid Customizer =====
+
+// Initialize button grid customizer
+async function initButtonGridCustomizer() {
+  const settings = await browser.storage.sync.get(defaultSettings);
+  renderButtonGrid(settings.panelOrder, settings.panelVisibility);
+}
+
+// Render button grid
+function renderButtonGrid(panelOrder, panelVisibility) {
+  const container = document.getElementById('button-grid-customizer');
+  container.innerHTML = '';
+
+  panelOrder.forEach((buttonId, index) => {
+    const metadata = buttonMetadata[buttonId];
+    if (!metadata) return;
+
+    const item = document.createElement('div');
+    item.className = 'button-grid-item';
+    item.dataset.buttonId = buttonId;
+    item.draggable = true;
+
+    item.innerHTML = `
+      <span class="drag-handle">☰</span>
+      <span class="button-icon">${metadata.icon}</span>
+      <span class="button-label">${metadata.label}</span>
+      <input type="checkbox" ${panelVisibility[buttonId] ? 'checked' : ''}>
+    `;
+
+    // Drag event listeners
+    item.addEventListener('dragstart', handleDragStart);
+    item.addEventListener('dragover', handleDragOver);
+    item.addEventListener('drop', handleDrop);
+    item.addEventListener('dragend', handleDragEnd);
+    item.addEventListener('dragenter', handleDragEnter);
+    item.addEventListener('dragleave', handleDragLeave);
+
+    container.appendChild(item);
+  });
+}
+
+// Drag and drop handlers
+let draggedItem = null;
+
+function handleDragStart(e) {
+  draggedItem = this;
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+function handleDragOver(e) {
+  if (e.preventDefault) {
+    e.preventDefault();
+  }
+  e.dataTransfer.dropEffect = 'move';
+  return false;
+}
+
+function handleDragEnter(e) {
+  if (this !== draggedItem) {
+    this.classList.add('drag-over');
+  }
+}
+
+function handleDragLeave(e) {
+  this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+  if (e.stopPropagation) {
+    e.stopPropagation();
+  }
+
+  if (draggedItem !== this) {
+    const container = document.getElementById('button-grid-customizer');
+    const allItems = Array.from(container.children);
+    const draggedIndex = allItems.indexOf(draggedItem);
+    const targetIndex = allItems.indexOf(this);
+
+    if (draggedIndex < targetIndex) {
+      this.parentNode.insertBefore(draggedItem, this.nextSibling);
+    } else {
+      this.parentNode.insertBefore(draggedItem, this);
+    }
+  }
+
+  this.classList.remove('drag-over');
+  return false;
+}
+
+function handleDragEnd(e) {
+  this.classList.remove('dragging');
+
+  const container = document.getElementById('button-grid-customizer');
+  const allItems = Array.from(container.children);
+  allItems.forEach(item => {
+    item.classList.remove('drag-over');
+  });
+}
+
+// Get current panel order from the DOM
+function getCurrentPanelOrder() {
+  const container = document.getElementById('button-grid-customizer');
+  const items = Array.from(container.children);
+  return items.map(item => item.dataset.buttonId);
+}
+
+// Get current panel visibility from the DOM
+function getCurrentPanelVisibility() {
+  const container = document.getElementById('button-grid-customizer');
+  const items = Array.from(container.children);
+  const visibility = {};
+
+  items.forEach(item => {
+    const buttonId = item.dataset.buttonId;
+    const checkbox = item.querySelector('input[type="checkbox"]');
+    visibility[buttonId] = checkbox.checked;
+  });
+
+  return visibility;
 }
