@@ -1,3 +1,11 @@
+// Get the appropriate label for the weekend option
+function getWeekendLabel() {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  // If it's Saturday (6), show "Next Weekend", otherwise show "This Weekend"
+  return dayOfWeek === 6 ? 'Next Weekend' : 'This Weekend';
+}
+
 // Get settings from storage
 async function getSettings() {
   const defaults = {
@@ -414,6 +422,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       const button = presetButtons.find(btn => btn.dataset.option === optionId);
       if (button) {
         grid.appendChild(button);
+
+        // Update label for weekend option dynamically
+        if (optionId === 'next-weekend') {
+          const labelElement = button.querySelector('.label');
+          if (labelElement) {
+            labelElement.textContent = getWeekendLabel();
+          }
+        }
 
         // Update timing display for visible buttons
         const timingElement = button.querySelector('.timing');
