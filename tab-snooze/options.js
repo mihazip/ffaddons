@@ -44,7 +44,7 @@ const buttonMetadata = {
   'tomorrow': { icon: '🌅', label: 'Tomorrow' },
   'tomorrow-eve': { icon: '🌆', label: 'Tomorrow Eve' },
   'next-weekend': { icon: '🎉', label: 'Next Weekend' },
-  'next-week': { icon: '📅', label: 'Next Week' },
+  'next-week': { icon: '📅', label: '7 Days' },
   'in-a-month': { icon: '📆', label: 'In a Month' },
   'someday': { icon: '🔮', label: 'Someday' }
 };
