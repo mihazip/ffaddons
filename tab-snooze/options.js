@@ -97,6 +97,9 @@ async function loadSettings() {
 // Save settings to storage
 async function saveSettings() {
   try {
+    // Update custom panel enabled states from the grid
+    updateCustomPanelStates();
+
     const settings = {
       laterTodayHours: parseInt(document.getElementById('later-today-hours').value),
       eveningTime: getRadioValue('evening-time', 'evening-custom-time'),
@@ -112,7 +115,9 @@ async function saveSettings() {
       unsnoozeNotificationMode: document.getElementById('unsnooze-notification-mode').value,
       // Phase 2: Button grid customization
       panelVisibility: getCurrentPanelVisibility(),
-      panelOrder: getCurrentPanelOrder()
+      panelOrder: getCurrentPanelOrder(),
+      // Phase 3: Custom panels
+      customPanels: customPanels
     };
 
     // Validate
@@ -209,28 +214,43 @@ function setRadioValue(radioGroupName, timeValue, customTimeId, customInputId) {
 // Initialize button grid customizer
 async function initButtonGridCustomizer() {
   const settings = await browser.storage.sync.get(defaultSettings);
-  renderButtonGrid(settings.panelOrder, settings.panelVisibility);
+  renderButtonGrid(settings.panelOrder, settings.panelVisibility, settings.customPanels || []);
 }
 
 // Render button grid
-function renderButtonGrid(panelOrder, panelVisibility) {
+function renderButtonGrid(panelOrder, panelVisibility, customPanels) {
   const container = document.getElementById('button-grid-customizer');
   container.innerHTML = '';
 
+  // Create a lookup for custom panels
+  const customPanelLookup = {};
+  customPanels.forEach(panel => {
+    customPanelLookup[panel.id] = panel;
+  });
+
   panelOrder.forEach((buttonId, index) => {
+    // Check if it's a preset panel
     const metadata = buttonMetadata[buttonId];
-    if (!metadata) return;
+    const customPanel = customPanelLookup[buttonId];
+
+    if (!metadata && !customPanel) return;
 
     const item = document.createElement('div');
     item.className = 'button-grid-item';
     item.dataset.buttonId = buttonId;
     item.draggable = true;
 
+    // Determine if this is a custom panel
+    const isCustom = !!customPanel;
+    const icon = isCustom ? customPanel.icon : metadata.icon;
+    const label = isCustom ? customPanel.name : metadata.label;
+    const isVisible = isCustom ? customPanel.enabled : panelVisibility[buttonId];
+
     item.innerHTML = `
       <span class="drag-handle">☰</span>
-      <span class="button-icon">${metadata.icon}</span>
-      <span class="button-label">${metadata.label}</span>
-      <input type="checkbox" ${panelVisibility[buttonId] ? 'checked' : ''}>
+      <span class="button-icon">${icon}</span>
+      <span class="button-label">${label}${isCustom ? ' <span style="opacity: 0.6; font-size: 0.9em;">(custom)</span>' : ''}</span>
+      <input type="checkbox" ${isVisible ? 'checked' : ''} ${isCustom ? 'data-custom="true"' : ''}>
     `;
 
     // Drag event listeners
@@ -321,10 +341,35 @@ function getCurrentPanelVisibility() {
   items.forEach(item => {
     const buttonId = item.dataset.buttonId;
     const checkbox = item.querySelector('input[type="checkbox"]');
-    visibility[buttonId] = checkbox.checked;
+    const isCustom = checkbox.dataset.custom === 'true';
+
+    // Only save visibility for preset panels
+    // Custom panel visibility is saved in the customPanels array
+    if (!isCustom) {
+      visibility[buttonId] = checkbox.checked;
+    }
   });
 
   return visibility;
+}
+
+// Update custom panel enabled states from the DOM
+function updateCustomPanelStates() {
+  const container = document.getElementById('button-grid-customizer');
+  const items = Array.from(container.children);
+
+  items.forEach(item => {
+    const buttonId = item.dataset.buttonId;
+    const checkbox = item.querySelector('input[type="checkbox"]');
+    const isCustom = checkbox.dataset.custom === 'true';
+
+    if (isCustom) {
+      const panel = customPanels.find(p => p.id === buttonId);
+      if (panel) {
+        panel.enabled = checkbox.checked;
+      }
+    }
+  });
 }
 
 // ===== Custom Panels Management =====
@@ -650,6 +695,7 @@ async function saveCustomPanel() {
   }
 
   // Add or update panel
+  const isNewPanel = !currentEditingPanelId;
   if (currentEditingPanelId) {
     const index = customPanels.findIndex(p => p.id === currentEditingPanelId);
     if (index !== -1) {
@@ -661,6 +707,24 @@ async function saveCustomPanel() {
 
   // Save to storage
   await saveCustomPanels();
+
+  // If it's a new panel, add it to panelOrder and refresh the button grid
+  if (isNewPanel) {
+    const settings = await browser.storage.sync.get(defaultSettings);
+    const panelOrder = settings.panelOrder || [];
+
+    // Add the new panel ID to the end of the order (before advanced options)
+    panelOrder.push(panel.id);
+
+    await browser.storage.sync.set({ panelOrder });
+
+    // Refresh the button grid to show the new panel
+    renderButtonGrid(panelOrder, settings.panelVisibility, customPanels);
+  } else {
+    // If editing, just refresh the button grid to update the display
+    const settings = await browser.storage.sync.get(defaultSettings);
+    renderButtonGrid(settings.panelOrder, settings.panelVisibility, customPanels);
+  }
 
   // Close modal and refresh list
   document.getElementById('custom-panel-modal').style.display = 'none';
@@ -694,5 +758,14 @@ async function deleteCustomPanel(panelId) {
 
   customPanels = customPanels.filter(p => p.id !== panelId);
   await saveCustomPanels();
+
+  // Remove from panelOrder
+  const settings = await browser.storage.sync.get(defaultSettings);
+  const panelOrder = settings.panelOrder.filter(id => id !== panelId);
+
+  await browser.storage.sync.set({ panelOrder });
+
+  // Refresh the button grid and custom panels list
+  renderButtonGrid(panelOrder, settings.panelVisibility, customPanels);
   renderCustomPanelsList();
 }
