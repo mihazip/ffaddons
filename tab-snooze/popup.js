@@ -398,14 +398,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Get settings (including panelVisibility and panelOrder)
   const settings = await getSettings();
 
-  // Phase 2: Reorder buttons in the grid based on settings
+  // Phase 2 & 3: Reorder buttons in the grid based on settings (mixing preset and custom)
   const grid = document.querySelector('.snooze-grid');
   const allButtons = Array.from(grid.querySelectorAll('.snooze-btn[data-option]'));
 
   // Separate preset buttons from special buttons (pick-date, repeatedly, settings, view-snoozed)
-  const presetButtons = allButtons.filter(btn => {
+  const presetButtons = {};
+  allButtons.forEach(btn => {
     const option = btn.dataset.option;
-    return settings.panelOrder.includes(option);
+    const presetPanelIds = [
+      'later-today', 'this-eve', 'tomorrow', 'tomorrow-eve',
+      'next-weekend', 'next-week', 'in-a-month', 'someday'
+    ];
+    if (presetPanelIds.includes(option)) {
+      presetButtons[option] = btn;
+    }
   });
 
   const pickDateBtn = grid.querySelector('[data-option="pick-date"]');
@@ -416,49 +423,54 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Clear the grid
   grid.innerHTML = '';
 
-  // Add preset buttons in the order specified by panelOrder, filtering by visibility
-  for (const optionId of settings.panelOrder) {
-    if (settings.panelVisibility[optionId]) {
-      const button = presetButtons.find(btn => btn.dataset.option === optionId);
-      if (button) {
-        grid.appendChild(button);
+  // Create a lookup for custom panels
+  const customPanels = settings.customPanels || [];
+  const customPanelLookup = {};
+  customPanels.forEach(panel => {
+    customPanelLookup[panel.id] = panel;
+  });
 
-        // Update label for weekend option dynamically
-        if (optionId === 'next-weekend') {
-          const labelElement = button.querySelector('.label');
-          if (labelElement) {
-            labelElement.textContent = getWeekendLabel();
-          }
-        }
+  // Add panels (both preset and custom) in the order specified by panelOrder
+  for (const panelId of settings.panelOrder) {
+    // Check if it's a preset panel
+    if (presetButtons[panelId] && settings.panelVisibility[panelId]) {
+      const button = presetButtons[panelId];
+      grid.appendChild(button);
 
-        // Update timing display for visible buttons
-        const timingElement = button.querySelector('.timing');
-        if (timingElement) {
-          const timingText = await formatTimingDisplay(optionId);
-          timingElement.textContent = timingText;
+      // Update label for weekend option dynamically
+      if (panelId === 'next-weekend') {
+        const labelElement = button.querySelector('.label');
+        if (labelElement) {
+          labelElement.textContent = getWeekendLabel();
         }
       }
+
+      // Update timing display for visible buttons
+      const timingElement = button.querySelector('.timing');
+      if (timingElement) {
+        const timingText = await formatTimingDisplay(panelId);
+        timingElement.textContent = timingText;
+      }
     }
-  }
+    // Check if it's a custom panel
+    else if (customPanelLookup[panelId]) {
+      const panel = customPanelLookup[panelId];
+      if (panel.enabled) {
+        const button = document.createElement('button');
+        button.className = 'snooze-btn';
+        button.dataset.option = panel.id;
+        button.dataset.customPanel = 'true';
 
-  // Phase 3: Add custom panels
-  const customPanels = settings.customPanels || [];
-  for (const panel of customPanels) {
-    if (panel.enabled) {
-      const button = document.createElement('button');
-      button.className = 'snooze-btn';
-      button.dataset.option = panel.id;
-      button.dataset.customPanel = 'true';
+        const timingText = await formatCustomPanelTiming(panel);
 
-      const timingText = await formatCustomPanelTiming(panel);
+        button.innerHTML = `
+          <div class="icon">${panel.icon}</div>
+          <div class="label">${panel.name}</div>
+          <div class="timing">${timingText}</div>
+        `;
 
-      button.innerHTML = `
-        <div class="icon">${panel.icon}</div>
-        <div class="label">${panel.name}</div>
-        <div class="timing">${timingText}</div>
-      `;
-
-      grid.appendChild(button);
+        grid.appendChild(button);
+      }
     }
   }
 
