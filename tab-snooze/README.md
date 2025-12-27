@@ -20,6 +20,8 @@ A browser extension that lets you snooze tabs and reopen them later at your chos
 - **Manage Snoozed Tabs**: View all your snoozed tabs in one place
 - **Notifications**: Get notified when tabs are snoozed and unsnoozed
 - **Persistent Storage**: Tabs will reopen even if the browser was closed
+- **Cross-Device Sync**: Snoozed tabs sync across devices via Firefox Sync (when signed in)
+- **Export/Import**: Backup and restore your snoozed tabs with JSON export/import
 
 ## Installation
 
@@ -126,13 +128,76 @@ The extension uses `browser.*` APIs (Firefox standard). For Chrome, you may need
 - Recurring snoozes (daily, weekly, etc.)
 - Snooze multiple tabs at once
 - Keyboard shortcuts
-- Import/export snoozed tabs
 - Dark/light theme toggle
-- Browser sync across devices
 
 ## License
 
 MIT License - Feel free to use and modify as needed.
+
+## Firefox Add-on Signing & Manifest
+
+### Extension ID
+
+For Firefox add-ons to be properly signed and distributed via addons.mozilla.org (AMO), the extension needs a unique identifier. This is configured in `manifest.json` under `browser_specific_settings`:
+
+```json
+"browser_specific_settings": {
+  "gecko": {
+    "id": "tab-snooze@ffaddons.local"
+  }
+}
+```
+
+The `id` field:
+- Must be unique across all Firefox add-ons
+- Can be an email-style ID (`addon-name@your-domain`) or a UUID
+- Is required for signing and distribution on AMO
+- Ensures consistent storage isolation between versions
+
+### Data Collection Disclosure
+
+Firefox requires extensions to declare their data collection practices. The `data_collection_permissions` field in the manifest documents what data the extension accesses:
+
+```json
+"browser_specific_settings": {
+  "gecko": {
+    "id": "tab-snooze@ffaddons.local",
+    "data_collection_permissions": {
+      "required": ["websiteContent"]
+    }
+  }
+}
+```
+
+This declaration indicates:
+- The extension accesses tab URLs and titles (website content)
+- All data is stored locally and synced via Firefox Sync
+- No data is transmitted to external servers
+
+### Signing Process
+
+To distribute the extension on AMO:
+
+1. Create an account at [addons.mozilla.org](https://addons.mozilla.org)
+2. Go to Developer Hub → Submit a New Add-on
+3. Upload a ZIP file containing all extension files
+4. AMO will validate the manifest and sign the extension
+5. Once approved, users can install from AMO
+
+For self-distribution (outside AMO):
+1. Use the [web-ext](https://github.com/mozilla/web-ext) tool
+2. Run `web-ext sign --api-key=YOUR_KEY --api-secret=YOUR_SECRET`
+3. Distribute the signed `.xpi` file
+
+### Storage Considerations
+
+This extension uses `browser.storage.sync` for snoozed tabs, which:
+- Syncs data across devices when signed into Firefox Sync
+- Falls back to local storage if not signed in
+- Has a 100KB total storage limit
+- Persists across browser updates and reinstalls (with same extension ID)
+
+**Note for developers**: Temporary add-ons (loaded via `about:debugging`) use isolated storage, separate from signed versions. Always export your snoozed tabs before testing with temporary add-ons.
 
 ## Contributing
 
