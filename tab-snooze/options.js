@@ -66,6 +66,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Initialize custom panels
   initCustomPanels();
+
+  // Initialize export/import handlers
+  initExportImport();
 });
 
 // Load settings from storage
@@ -768,4 +771,176 @@ async function deleteCustomPanel(panelId) {
   // Refresh the button grid and custom panels list
   renderButtonGrid(panelOrder, settings.panelVisibility, customPanels);
   renderCustomPanelsList();
+}
+
+// ===== Export/Import Functionality =====
+
+// Initialize export/import handlers
+function initExportImport() {
+  const exportBtn = document.getElementById('export-btn');
+  const importBtn = document.getElementById('import-btn');
+  const importFileInput = document.getElementById('import-file-input');
+
+  exportBtn.addEventListener('click', exportSnoozedTabs);
+  importBtn.addEventListener('click', () => importFileInput.click());
+  importFileInput.addEventListener('change', handleImportFile);
+}
+
+// Export snoozed tabs to JSON file
+async function exportSnoozedTabs() {
+  const backupStatus = document.getElementById('backup-status');
+  
+  try {
+    // Get snoozed tabs from storage
+    const result = await browser.storage.sync.get('snoozedTabs');
+    const snoozedTabs = result.snoozedTabs || {};
+    
+    const tabCount = Object.keys(snoozedTabs).length;
+    
+    if (tabCount === 0) {
+      backupStatus.textContent = '⚠️ No snoozed tabs to export.';
+      backupStatus.style.color = '#f39c12';
+      return;
+    }
+
+    // Create export data with metadata
+    const exportData = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      extensionVersion: browser.runtime.getManifest().version,
+      tabCount: tabCount,
+      snoozedTabs: snoozedTabs
+    };
+
+    // Create and download file
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = `tab-snooze-backup-${dateStr}.json`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    backupStatus.textContent = `✅ Exported ${tabCount} snoozed tab${tabCount !== 1 ? 's' : ''} successfully!`;
+    backupStatus.style.color = '#2ecc71';
+  } catch (error) {
+    console.error('Error exporting snoozed tabs:', error);
+    backupStatus.textContent = '❌ Error exporting tabs. See console for details.';
+    backupStatus.style.color = '#e74c3c';
+  }
+}
+
+// Handle import file selection
+async function handleImportFile(event) {
+  const backupStatus = document.getElementById('backup-status');
+  const file = event.target.files[0];
+  
+  if (!file) {
+    return;
+  }
+
+  try {
+    const text = await file.text();
+    const importData = JSON.parse(text);
+
+    // Validate import data
+    if (!importData.snoozedTabs || typeof importData.snoozedTabs !== 'object') {
+      throw new Error('Invalid backup file format: missing snoozedTabs');
+    }
+
+    const tabCount = Object.keys(importData.snoozedTabs).length;
+    
+    if (tabCount === 0) {
+      backupStatus.textContent = '⚠️ The backup file contains no snoozed tabs.';
+      backupStatus.style.color = '#f39c12';
+      return;
+    }
+
+    // Confirm import
+    const existingResult = await browser.storage.sync.get('snoozedTabs');
+    const existingTabs = existingResult.snoozedTabs || {};
+    const existingCount = Object.keys(existingTabs).length;
+
+    let confirmMessage = `Import ${tabCount} snoozed tab${tabCount !== 1 ? 's' : ''}?`;
+    if (existingCount > 0) {
+      confirmMessage += `\n\nYou currently have ${existingCount} snoozed tab${existingCount !== 1 ? 's' : ''}. Choose how to proceed:`;
+      confirmMessage += '\n\n• OK = Merge (keep existing + add imported)';
+      confirmMessage += '\n• To replace all, cancel and clear existing tabs first';
+    }
+
+    if (!confirm(confirmMessage)) {
+      backupStatus.textContent = 'Import cancelled.';
+      backupStatus.style.color = '#999';
+      event.target.value = ''; // Reset file input
+      return;
+    }
+
+    // Merge imported tabs with existing ones
+    const mergedTabs = { ...existingTabs };
+    let importedCount = 0;
+    let skippedCount = 0;
+
+    for (const [id, tab] of Object.entries(importData.snoozedTabs)) {
+      // Validate tab structure
+      if (!tab.url || !tab.title || !tab.snoozeTime) {
+        skippedCount++;
+        continue;
+      }
+
+      // Check for duplicates (same URL and similar snooze time)
+      const isDuplicate = Object.values(mergedTabs).some(existingTab => 
+        existingTab.url === tab.url && 
+        Math.abs(existingTab.snoozeTime - tab.snoozeTime) < 60000 // Within 1 minute
+      );
+
+      if (isDuplicate) {
+        skippedCount++;
+        continue;
+      }
+
+      // Generate new ID to avoid conflicts
+      const newId = `imported-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      mergedTabs[newId] = {
+        ...tab,
+        id: newId,
+        importedAt: Date.now()
+      };
+      importedCount++;
+    }
+
+    // Save merged tabs
+    await browser.storage.sync.set({ snoozedTabs: mergedTabs });
+
+    // Recreate alarms for imported tabs
+    const now = Date.now();
+    for (const [id, tab] of Object.entries(mergedTabs)) {
+      if (tab.importedAt && tab.snoozeTime > now) {
+        await browser.alarms.create(`snooze-${id}`, {
+          when: tab.snoozeTime
+        });
+      }
+    }
+
+    let statusMessage = `✅ Imported ${importedCount} tab${importedCount !== 1 ? 's' : ''} successfully!`;
+    if (skippedCount > 0) {
+      statusMessage += ` (${skippedCount} skipped as duplicates or invalid)`;
+    }
+    
+    backupStatus.textContent = statusMessage;
+    backupStatus.style.color = '#2ecc71';
+
+  } catch (error) {
+    console.error('Error importing snoozed tabs:', error);
+    backupStatus.textContent = `❌ Error importing: ${error.message}`;
+    backupStatus.style.color = '#e74c3c';
+  }
+
+  // Reset file input
+  event.target.value = '';
 }

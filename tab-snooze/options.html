@@ -739,6 +739,23 @@
     </div>
   </div>
 
+  <div class="setting-group">
+    <h2>📦 Data Backup</h2>
+    <div class="description" style="margin-bottom: 16px;">
+      Export your snoozed tabs to a file for backup, or import from a previously exported file.
+      This is useful for transferring tabs between devices or restoring after reinstalling the extension.
+    </div>
+
+    <div class="setting-item">
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <button id="export-btn" class="save-btn" style="background: #2ecc71;">📤 Export Snoozed Tabs</button>
+        <button id="import-btn" class="save-btn" style="background: #3498db;">📥 Import Snoozed Tabs</button>
+      </div>
+      <input type="file" id="import-file-input" accept=".json" style="display: none;">
+      <div id="backup-status" class="description" style="margin-top: 12px;"></div>
+    </div>
+  </div>
+
   <button id="save-btn" class="save-btn">Save Settings</button>
 
   <script src="options.js"></script>
