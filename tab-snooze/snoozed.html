@@ -199,6 +199,38 @@
     .recurring-item {
       border-left: 3px solid #53a8b6;
     }
+
+    .section-title {
+      color: #53a8b6;
+      font-size: 18px;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #0f3460;
+    }
+
+    .section-title:first-of-type {
+      margin-top: 0;
+    }
+
+    .empty-section {
+      text-align: center;
+      padding: 30px 20px;
+      color: #666;
+      background: #16213e;
+      border: 1px dashed #0f3460;
+      border-radius: 8px;
+      font-style: italic;
+    }
+
+    .pause-btn {
+      background: #f39c12;
+      color: #fff;
+    }
+
+    .pause-btn:hover {
+      background: #d68910;
+    }
   </style>
 </head>
 <body>
@@ -207,8 +239,12 @@
 
   <div class="stats">
     <div class="stat-item">
-      <div class="stat-value" id="total-count">0</div>
-      <div class="stat-label">Total Snoozed</div>
+      <div class="stat-value" id="onetime-count">0</div>
+      <div class="stat-label">One-time Snoozes</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="recurring-count">0</div>
+      <div class="stat-label">Recurring Tabs</div>
     </div>
     <div class="stat-item">
       <div class="stat-value" id="today-count">0</div>
@@ -216,8 +252,16 @@
     </div>
   </div>
 
-  <div id="snoozed-container">
-    <!-- Snoozed tabs will be inserted here -->
+  <!-- One-time Snoozed Tabs Section -->
+  <h2 class="section-title">📅 One-time Snoozes</h2>
+  <div id="onetime-container">
+    <!-- One-time snoozed tabs will be inserted here -->
+  </div>
+
+  <!-- Recurring Tabs Section -->
+  <h2 class="section-title">🔄 Recurring Tabs</h2>
+  <div id="recurring-container">
+    <!-- Recurring tabs will be inserted here -->
   </div>
 
   <script src="snoozed.js"></script>

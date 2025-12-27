@@ -822,8 +822,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const settings = await getSettings();
     const now = new Date();
 
-    // Set default time to 1 minute from now
-    const defaultDateTime = new Date(now.getTime() + 60 * 1000);
+    // Set default time to the configured morning time (more sensible for recurring)
+    const [mornHours, mornMinutes] = settings.morningTime.split(':').map(Number);
+    const defaultDateTime = new Date();
+    defaultDateTime.setHours(mornHours, mornMinutes, 0, 0);
+    
+    // If morning time has already passed today, the first occurrence will be tomorrow
+    // (which is handled in the confirm handler)
     const recurringTimeInput = document.getElementById('recurring-time');
 
     recurringTimeInput.placeholder = settings.timeFormat === '12' ? '2:30 PM' : '14:30';
