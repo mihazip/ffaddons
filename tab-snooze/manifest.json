@@ -6,14 +6,11 @@
 
   "browser_specific_settings": {
     "gecko": {
-      "id": "tab-snooze@ffaddons.local"
+      "id": "tab-snooze@ffaddons.local",
+      "data_collection_permissions": {
+        "required": ["websiteContent"]
+      }
     }
-  },
-
-  "data_collection_permissions": {
-    "purpose": "This extension collects tab information (URL, title, favicon) only to save and restore snoozed tabs at scheduled times. All data is stored locally in your browser and is never transmitted to external servers.",
-    "data_types": ["tabs", "storage"],
-    "storage_location": "local"
   },
 
   "permissions": [
