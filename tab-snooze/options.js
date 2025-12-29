@@ -791,8 +791,8 @@ async function exportSnoozedTabs() {
   const backupStatus = document.getElementById('backup-status');
   
   try {
-    // Get snoozed tabs from storage
-    const result = await browser.storage.sync.get('snoozedTabs');
+    // Get snoozed tabs from storage (using local storage, same as background.js)
+    const result = await browser.storage.local.get('snoozedTabs');
     const snoozedTabs = result.snoozedTabs || {};
     
     const tabCount = Object.keys(snoozedTabs).length;
@@ -863,7 +863,7 @@ async function handleImportFile(event) {
     }
 
     // Confirm import
-    const existingResult = await browser.storage.sync.get('snoozedTabs');
+    const existingResult = await browser.storage.local.get('snoozedTabs');
     const existingTabs = existingResult.snoozedTabs || {};
     const existingCount = Object.keys(existingTabs).length;
 
@@ -915,7 +915,7 @@ async function handleImportFile(event) {
     }
 
     // Save merged tabs
-    await browser.storage.sync.set({ snoozedTabs: mergedTabs });
+    await browser.storage.local.set({ snoozedTabs: mergedTabs });
 
     // Recreate alarms for imported tabs
     const now = Date.now();
