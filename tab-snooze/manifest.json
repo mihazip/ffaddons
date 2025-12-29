@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Tab Snooze",
-  "version": "1.5.0",
+  "version": "1.5.2",
   "description": "Snooze tabs and reopen them later at your chosen time",
 
   "browser_specific_settings": {
