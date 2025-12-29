@@ -164,8 +164,8 @@ async function handleSnoozeTab(tab, snoozeTime) {
       createdAt: Date.now()
     };
 
-    // Save to storage (using sync for cross-device persistence)
-    await browser.storage.sync.set({ [SNOOZED_TABS_KEY]: snoozedTabs });
+// Save to storage (using local for reliability - sync has size limits)
+    await browser.storage.local.set({ [SNOOZED_TABS_KEY]: snoozedTabs });
 
     // Create alarm
     const alarmTime = snoozeTime;
@@ -235,8 +235,8 @@ async function createRecurringInstance(tab, snoozeTime, recurrencePattern, serie
       instanceNumber: instanceNumber
     };
 
-    // Save to storage (using sync for cross-device persistence)
-    await browser.storage.sync.set({ [SNOOZED_TABS_KEY]: snoozedTabs });
+    // Save to storage (using local for reliability - sync has size limits)
+    await browser.storage.local.set({ [SNOOZED_TABS_KEY]: snoozedTabs });
 
     // Create alarm
     await browser.alarms.create(`snooze-${snoozeId}`, {
@@ -344,7 +344,7 @@ function calculateNextOccurrence(currentTime, recurrencePattern) {
 
 // Get all snoozed tabs from storage
 async function getSnoozedTabs() {
-  const result = await browser.storage.sync.get(SNOOZED_TABS_KEY);
+  const result = await browser.storage.local.get(SNOOZED_TABS_KEY);
   return result[SNOOZED_TABS_KEY] || {};
 }
 
@@ -399,7 +399,7 @@ async function openSnoozedTab(snoozeId) {
 
     // Remove current instance from storage
     delete snoozedTabs[snoozeId];
-    await browser.storage.sync.set({ [SNOOZED_TABS_KEY]: snoozedTabs });
+    await browser.storage.local.set({ [SNOOZED_TABS_KEY]: snoozedTabs });
 
     console.log(`Opened snoozed tab: ${snooze.title}`);
   } catch (error) {
@@ -429,7 +429,7 @@ async function deleteSnooze(snoozeId) {
     // Remove from storage
     const snoozedTabs = await getSnoozedTabs();
     delete snoozedTabs[snoozeId];
-    await browser.storage.sync.set({ [SNOOZED_TABS_KEY]: snoozedTabs });
+    await browser.storage.local.set({ [SNOOZED_TABS_KEY]: snoozedTabs });
 
     console.log(`Deleted snooze: ${snoozeId}`);
   } catch (error) {
