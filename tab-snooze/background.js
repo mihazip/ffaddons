@@ -397,9 +397,13 @@ async function openSnoozedTab(snoozeId) {
       }
     }
 
+    // Reload tabs from storage to get the latest state (including any newly created recurring instance)
+    // This prevents overwriting the next instance that was just created above
+    const updatedSnoozedTabs = await getSnoozedTabs();
+
     // Remove current instance from storage
-    delete snoozedTabs[snoozeId];
-    await browser.storage.local.set({ [SNOOZED_TABS_KEY]: snoozedTabs });
+    delete updatedSnoozedTabs[snoozeId];
+    await browser.storage.local.set({ [SNOOZED_TABS_KEY]: updatedSnoozedTabs });
 
     console.log(`Opened snoozed tab: ${snooze.title}`);
   } catch (error) {
