@@ -1,0 +1,87 @@
+name: Release Tab Snooze
+
+# Trigger: push a version tag like v1.5.3
+on:
+  push:
+    tags:
+      - 'v*'
+  # Manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # If triggered manually, bump version and create tag
+      - name: Bump version (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          MANIFEST="tab-snooze/manifest.json"
+          CURRENT=$(grep '"version"' "$MANIFEST" | sed 's/.*"\([0-9][0-9.]*\)".*/\1/')
+          IFS='.' read -r major minor patch <<< "$CURRENT"
+          
+          case "${{ github.event.inputs.bump }}" in
+            major) NEW="$((major + 1)).0.0" ;;
+            minor) NEW="$major.$((minor + 1)).0" ;;
+            patch) NEW="$major.$minor.$((patch + 1))" ;;
+          esac
+          
+          sed -i "s/\"version\": \"[0-9][0-9.]*\"/\"version\": \"$NEW\"/" "$MANIFEST"
+          echo "VERSION=$NEW" >> $GITHUB_ENV
+          echo "TAG=v$NEW" >> $GITHUB_ENV
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$MANIFEST"
+          git commit -m "release: v$NEW"
+          git tag "v$NEW"
+          git push origin HEAD:master --follow-tags
+      
+      # If triggered by tag push, extract version from tag
+      - name: Get version from tag
+        if: github.event_name == 'push'
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "TAG=$TAG" >> $GITHUB_ENV
+      
+      - name: Package addon
+        run: |
+          cd tab-snooze
+          zip -r "../tab-snooze-v${VERSION}.zip" \
+            manifest.json \
+            background.js \
+            popup.html popup.js \
+            options.html options.js \
+            snoozed.html snoozed.js \
+            styles.css \
+            icons/moon-16.png icons/moon-32.png icons/moon-48.png icons/moon-128.png \
+            -x "*.DS_Store" "*.swp"
+          cd ..
+          tar czf "tab-snooze-v${VERSION}.tar.gz" -C tab-snooze .
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: "Tab Snooze ${{ env.TAG }}"
+          generate_release_notes: true
+          files: |
+            tab-snooze-v${{ env.VERSION }}.zip
+            tab-snooze-v${{ env.VERSION }}.tar.gz
