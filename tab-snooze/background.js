@@ -55,16 +55,25 @@ browser.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   }
 });
 
+// Serialize alarm processing so concurrent alarms don't race on storage writes
+let alarmProcessingQueue = Promise.resolve();
+
+function queueAlarmProcessing(snoozeId) {
+  alarmProcessingQueue = alarmProcessingQueue
+    .then(() => openSnoozedTab(snoozeId))
+    .catch(err => console.error('Error processing alarm for snooze:', snoozeId, err));
+}
+
 // Listen for alarms
-browser.alarms.onAlarm.addListener(async (alarm) => {
+browser.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === PERIODIC_CHECK_ALARM) {
     // Periodic check for overdue tabs (safety net for missed alarms)
     console.log('Running periodic check for overdue tabs');
-    await checkAndOpenSnoozedTabs();
+    checkAndOpenSnoozedTabs().catch(err => console.error('Error in periodic check:', err));
   } else if (alarm.name.startsWith('snooze-')) {
-    // Individual tab alarm
+    // Individual tab alarm - queue to prevent concurrent storage race conditions
     const snoozeId = alarm.name.replace('snooze-', '');
-    await openSnoozedTab(snoozeId);
+    queueAlarmProcessing(snoozeId);
   }
 });
 
@@ -269,6 +278,21 @@ async function createRecurringInstance(tab, snoozeTime, recurrencePattern, serie
   }
 }
 
+// Advance a calculated next time forward until it is in the future.
+// This prevents stale snoozeTime values (e.g. from missed/caught-up events)
+// from scheduling alarms in the past, which would fire immediately and
+// open the tab again unexpectedly.
+function advanceToFuture(nextTime, recurrencePattern) {
+  const now = Date.now();
+  let candidate = nextTime;
+  // Guard: limit iterations to avoid infinite loops for bad patterns
+  for (let i = 0; i < 1000 && candidate <= now; i++) {
+    candidate = calculateNextOccurrence(candidate, recurrencePattern);
+    if (candidate === null) return null;
+  }
+  return candidate > now ? candidate : null;
+}
+
 // Calculate next occurrence for a recurring event
 function calculateNextOccurrence(currentTime, recurrencePattern) {
   const current = new Date(currentTime);
@@ -309,16 +333,17 @@ function calculateNextOccurrence(currentTime, recurrencePattern) {
       }
       break;
 
-    case 'monthly':
-      // Next month on the same date
-      next = new Date(current);
-      next.setMonth(next.getMonth() + 1);
-
-      // Handle shorter months (e.g., Jan 31 -> Feb 28/29)
+    case 'monthly': {
+      // Build the next-month date from year/month/day components to avoid
+      // JavaScript's setMonth overflow (e.g. Jan 31 + setMonth(1) = Mar 2).
       const targetDay = pattern.dayOfMonth;
-      const daysInNextMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
-      next.setDate(Math.min(targetDay, daysInNextMonth));
+      const curMonth = current.getMonth();
+      const nextMonthNum = (curMonth + 1) % 12;
+      const nextYearNum = curMonth === 11 ? current.getFullYear() + 1 : current.getFullYear();
+      const daysInNextMonth = new Date(nextYearNum, nextMonthNum + 1, 0).getDate();
+      next = new Date(nextYearNum, nextMonthNum, Math.min(targetDay, daysInNextMonth));
       break;
+    }
 
     case 'yearly':
       // Next year on the same date and month
@@ -374,7 +399,10 @@ async function openSnoozedTab(snoozeId) {
 
     // If this is a recurring tab, schedule the next occurrence
     if (snooze.recurring) {
-      const nextTime = calculateNextOccurrence(snooze.snoozeTime, snooze.recurrencePattern);
+      const rawNext = calculateNextOccurrence(snooze.snoozeTime, snooze.recurrencePattern);
+      // If rawNext is in the past (e.g. browser was closed for multiple days),
+      // advance forward until we reach a future time so the tab doesn't open again immediately.
+      const nextTime = rawNext !== null ? advanceToFuture(rawNext, snooze.recurrencePattern) : null;
 
       if (nextTime) {
         // Check if we should continue recurring (endDate check)
@@ -461,4 +489,17 @@ async function checkAndOpenSnoozedTabs() {
   } catch (error) {
     console.error('Error checking snoozed tabs:', error);
   }
+}
+
+// Export for testing (Node.js / Jest)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    calculateNextOccurrence,
+    advanceToFuture,
+    openSnoozedTab,
+    createRecurringInstance,
+    checkAndOpenSnoozedTabs,
+    getSnoozedTabs,
+    queueAlarmProcessing,
+  };
 }
