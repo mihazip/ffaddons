@@ -59,9 +59,11 @@ browser.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 let alarmProcessingQueue = Promise.resolve();
 
 function queueAlarmProcessing(snoozeId) {
-  alarmProcessingQueue = alarmProcessingQueue
+  const next = alarmProcessingQueue
     .then(() => openSnoozedTab(snoozeId))
     .catch(err => console.error('Error processing alarm for snooze:', snoozeId, err));
+  alarmProcessingQueue = next;
+  return next;
 }
 
 // Listen for alarms
@@ -475,10 +477,13 @@ async function checkAndOpenSnoozedTabs() {
     const snoozedTabs = await getSnoozedTabs();
     const now = Date.now();
 
+    const pending = [];
     for (const [snoozeId, snooze] of Object.entries(snoozedTabs)) {
       if (snooze.snoozeTime <= now) {
-        // This tab should have been opened already
-        await openSnoozedTab(snoozeId);
+        // Queue through the same serial queue as alarm-triggered opens to avoid
+        // race conditions when both an alarm fires and this check runs for the
+        // same entry.
+        pending.push(queueAlarmProcessing(snoozeId));
       } else {
         // Recreate alarm in case it was lost
         await browser.alarms.create(`snooze-${snoozeId}`, {
@@ -486,6 +491,7 @@ async function checkAndOpenSnoozedTabs() {
         });
       }
     }
+    await Promise.all(pending);
   } catch (error) {
     console.error('Error checking snoozed tabs:', error);
   }
